@@ -9,3 +9,5 @@ draft: false
 ## [[991. Prolongements possibles de ce projet|Prolongements possibles de ce projet]]
 ## [[992. Bibliographie - webographie|Bibliographie - webographie]]
 ## [[999. Conclusion|Conclusion]]
+
+#article
