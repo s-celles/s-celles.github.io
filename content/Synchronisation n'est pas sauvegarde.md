@@ -1,14 +1,16 @@
 ---
 title: 
 draft: false
-MOC: 
+MOC:
+  - "[[Synchronisation]]"
+  - "[[Sauvegarde]]"
 type: 
 tags: 
 aliases: 
 see also: 
 url:
 ---
-La synchronisation et la sauvegarde sont deux concepts différents en informatique, bien qu'ils soient parfois confondus. Voici une explication de leurs différences :
+La [[synchronisation]] et la [[sauvegarde]] sont deux concepts différents en informatique, bien qu'ils soient parfois confondus. Voici une explication de leurs différences :
 
 Synchronisation :
 C'est le processus de mise à jour des fichiers entre plusieurs appareils ou emplacements pour qu'ils aient le même contenu.
