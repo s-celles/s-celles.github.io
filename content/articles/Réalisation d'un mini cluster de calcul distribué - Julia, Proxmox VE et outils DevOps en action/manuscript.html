@@ -1,0 +1,2471 @@
+<h1 id="introduction">Introduction</h1>
+<p>Julia, un langage de programmation moderne conçu pour le calcul
+scientifique et l'analyse de données, se distingue par sa capacité à
+combiner la facilité d'utilisation d'un langage de haut niveau avec les
+performances d'un langage compilé. Dans cet article, nous explorerons
+comment Julia peut être utilisé pour le calcul distribué dans le cadre
+d'une expérimentation personnelle au sein d'un homelab.</p>
+<p>Il est important de noter que cette démarche n'a pas vocation à être
+déployée à grande échelle, mais vise plutôt à comprendre les mécanismes
+sous-jacents du calcul distribué et à monter en compétence sur divers
+sujets DevOps. L'objectif principal est l'apprentissage et
+l'expérimentation, plutôt que la création d'une solution de production.
+Je ne suis nullement un expert en calcul distribué, en programmation
+Julia ou en DevOps. Mon approche de ces sujets complexes est celle d'un
+apprenant passionné, cherchant à monter en compétence à travers diverses
+méthodes. Ma démarche combine la recherche d'informations sur Internet,
+le dialogue avec des modèles de langage avancés (LLM), et surtout,
+l'expérimentation pratique dans le cadre de mon homelab. Cette approche
+me permet de confronter la théorie à la pratique, de tester des concepts
+et d'apprendre par l'expérience.</p>
+<p>Le homelab offre un environnement sécurisé pour essayer, échouer, et
+réussir, sans les contraintes d'un système de production. En partageant
+ce processus d'apprentissage, j'espère non seulement consolider mes
+propres connaissances, mais aussi encourager d'autres enthousiastes à
+explorer ces domaines passionnants. Bien que mes explications puissent
+parfois manquer de la profondeur d'un expert, elles reflètent le
+parcours authentique d'un autodidacte dans le monde du calcul distribué
+et des technologies modernes.</p>
+<p>Pour ce faire, nous allons construire un mini environnement de calcul
+distribué, combinant :</p>
+<ol type="1">
+<li><strong>Julia</strong> comme langage principal, pour explorer ses
+fonctionnalités de parallélisation et de distribution des tâches.</li>
+<li><strong>Proxmox VE</strong>, une plateforme de virtualisation
+open-source, pour simuler une infrastructure de conteneurs dans notre
+homelab.</li>
+<li>Des <strong>outils DevOps</strong> tels que Terraform pour la
+gestion de l'infrastructure as code et Ansible pour l'automatisation de
+la configuration.</li>
+</ol>
+<p>Cette approche nous permettra non seulement d'expérimenter avec les
+capacités de calcul distribué de Julia, mais aussi de nous familiariser
+avec des concepts et outils DevOps essentiels. Tout au long de cet
+article, nous mettrons l'accent sur la compréhension des mécanismes
+utilisés, plutôt que sur l'optimisation des performances.</p>
+<p>Que vous soyez un développeur cherchant à élargir vos compétences, un
+étudiant explorant le monde du calcul distribué, ou simplement un
+passionné de technologie, cet article vous guidera à travers la création
+et l'utilisation d'un mini cluster de calcul dans un contexte de
+homelab. Nous mettrons en lumière non seulement le potentiel de Julia,
+mais aussi l'importance de comprendre les outils et pratiques DevOps qui
+soutiennent de telles infrastructures.</p>
+<p>L'objectif final est de vous offrir une expérience pratique et
+éducative, vous permettant de mieux appréhender les défis et les
+solutions liés au calcul distribué et à la gestion d'infrastructure
+moderne, le tout dans un environnement contrôlé et à petite échelle.</p>
+<hr />
+<h1 id="julia---du-mono-thread-au-calcul-distribué">Julia - du
+mono-thread au calcul distribué</h1>
+<hr />
+<h2 id="introduction-à-julia">Introduction à Julia</h2>
+<p>Julia est un langage de programmation relativement jeune, créé en
+2012 par Jeff Bezanson, Stefan Karpinski, Viral B. Shah et Alan Edelman
+au MIT. Conçu spécifiquement pour le calcul scientifique, Julia vise à
+résoudre ce qu'on appelle le "problème des deux langages" en combinant
+la facilité d'utilisation des langages dynamiques comme Python avec les
+performances des langages compilés comme C ou Fortran.</p>
+<h2 id="caractéristiques-clés-de-julia-">Caractéristiques clés de Julia
+:</h2>
+<ol type="1">
+<li><strong>Performance élevée</strong> : Grâce à son compilateur
+just-in-time (JIT) basé sur LLVM, Julia peut atteindre des performances
+comparables à celles de C ou Fortran.</li>
+<li><strong>Syntaxe simple et expressive</strong> : Julia offre une
+syntaxe claire et intuitive, similaire à celle de Python ou MATLAB, ce
+qui le rend accessible aux scientifiques et ingénieurs.</li>
+<li><strong>Typage dynamique avec option de typage statique</strong> :
+Julia permet le typage dynamique pour la flexibilité, mais offre aussi
+la possibilité de spécifier des types pour améliorer la performance et
+la sûreté du code.</li>
+<li><strong>Multiple dispatch</strong> : Cette fonctionnalité permet de
+définir le comportement des fonctions en fonction des types de tous
+leurs arguments, offrant une grande flexibilité et élégance dans la
+conception des algorithmes.</li>
+<li><strong>Gestion native des calculs parallèles et distribués</strong>
+: Julia intègre des primitives pour le calcul parallèle et distribué,
+facilitant l'exploitation des architectures multi-cœurs et des
+clusters.</li>
+<li><strong>Interopérabilité</strong> : Julia peut facilement appeler
+des fonctions C/Fortran directement, et s'interface bien avec Python via
+PyCall.</li>
+<li><strong>Écosystème riche en bibliothèques scientifiques</strong> :
+Malgré sa jeunesse, Julia dispose déjà d'un large éventail de
+bibliothèques spécialisées pour le calcul scientifique, l'analyse de
+données, l'apprentissage automatique, etc.</li>
+<li><strong>Métaprogrammation puissante</strong> : Julia offre des
+capacités avancées de métaprogrammation, permettant la génération et la
+manipulation de code Julia par du code Julia.</li>
+</ol>
+<h2
+id="pourquoi-julia-pour-le-calcul-scientifique-et-distribué-">Pourquoi
+Julia pour le calcul scientifique et distribué ?</h2>
+<ol type="1">
+<li><strong>Performances sans compromis</strong> : Contrairement à
+Python qui nécessite souvent l'utilisation de bibliothèques compilées
+(comme NumPy) pour des performances optimales, Julia offre des
+performances élevées nativement, tout en conservant une syntaxe de haut
+niveau.</li>
+<li><strong>Facilité de parallélisation</strong> : Avec des primitives
+intégrées pour le calcul parallèle et distribué, Julia simplifie
+grandement la mise en œuvre de calculs sur plusieurs cœurs ou plusieurs
+machines.</li>
+<li><strong>Expressivité mathématique</strong> : La syntaxe de Julia est
+proche de l'écriture mathématique, ce qui facilite la traduction
+d'équations en code.</li>
+<li><strong>Écosystème en croissance rapide</strong> : Bien que plus
+jeune que Python ou R, l'écosystème de Julia pour le calcul scientifique
+se développe rapidement, avec de nombreuses bibliothèques
+spécialisées.</li>
+<li><strong>Communauté active</strong> : Julia bénéficie d'une
+communauté dynamique et croissante, particulièrement dans les domaines
+scientifiques et académiques.</li>
+</ol>
+<p>Dans le contexte de notre projet de mini cluster, Julia nous
+permettra d'explorer facilement différentes approches de calcul
+distribué, du multithreading sur une seule machine à la distribution des
+calculs sur plusieurs nœuds. Sa syntaxe claire et ses performances
+élevées en font un choix idéal pour expérimenter et apprendre les
+concepts du calcul distribué dans un environnement de homelab.</p>
+<hr />
+<h2
+id="installation-de-julia-sur-une-machine-de-développement">Installation
+de Julia sur une machine de développement</h2>
+<p>Le site officiel de Julia : <a
+href="https://julialang.org/downloads/">https://julialang.org/downloads/</a>
+décrit la procédure permettant de réaliser son installation.</p>
+<p>Juliaup est un gestionnaire de versions pour Julia qui simplifie
+l'installation, la mise à jour et la gestion de plusieurs versions de
+Julia sur votre système. C'est l'outil recommandé officiellement pour
+installer Julia.</p>
+<h5 id="installation-de-juliaup">Installation de Juliaup</h5>
+<ol type="1">
+<li><p><strong>Windows</strong> :</p>
+<ul>
+<li>Ouvrez PowerShell et exécutez :
+<pre><code>winget install julia -s msstore</code></pre></li>
+</ul>
+<p>Ou visitez le Microsoft Store et recherchez "Julia".</p></li>
+<li><p><strong>macOS et Linux</strong> :</p>
+<ul>
+<li>Ouvrez un terminal et exécutez :
+<pre><code>curl -fsSL https://install.julialang.org | sh</code></pre></li>
+</ul></li>
+</ol>
+<h5 id="utilisation-de-juliaup">Utilisation de Juliaup</h5>
+<p>Une fois Juliaup installé, vous pouvez l'utiliser pour gérer vos
+installations Julia :</p>
+<ol type="1">
+<li><p><strong>Installer la dernière version stable</strong> :</p>
+<pre><code>juliaup add release</code></pre></li>
+<li><p><strong>Installer une version spécifique</strong> :</p>
+<pre><code>juliaup add 1.9</code></pre></li>
+<li><p><strong>Définir la version par défaut</strong> :</p>
+<pre><code>juliaup default 1.9</code></pre></li>
+<li><p><strong>Lister les versions installées</strong> :</p>
+<pre><code>juliaup list</code></pre></li>
+<li><p><strong>Mettre à jour toutes les versions installées</strong>
+:</p>
+<pre><code>juliaup update</code></pre></li>
+<li><p><strong>Supprimer une version</strong> :</p>
+<pre><code>juliaup remove 1.7</code></pre></li>
+</ol>
+<h5 id="avantages-de-juliaup">Avantages de Juliaup</h5>
+<ul>
+<li>Facilite la gestion de plusieurs versions de Julia sur le même
+système.</li>
+<li>Simplifie les mises à jour vers les nouvelles versions.</li>
+<li>Permet de basculer facilement entre différentes versions pour tester
+la compatibilité.</li>
+<li>Uniformise le processus d'installation et de gestion sur différents
+systèmes d'exploitation.</li>
+</ul>
+<p>Pour notre projet de mini cluster, Juliaup peut être particulièrement
+utile pour s'assurer que nous utilisons la même version de Julia sur
+toutes nos machines, ce qui est crucial pour la reproductibilité des
+calculs distribués.</p>
+<h4 id="vérification-de-linstallation">Vérification de
+l'installation</h4>
+<p>Après l'installation, ouvrez un terminal (ou invite de commande sur
+Windows) et tapez :</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ex">julia</span></span></code></pre></div>
+<p>Vous devriez voir apparaître le REPL (Read-Eval-Print Loop) de Julia,
+qui ressemble à ceci :</p>
+<pre><code>               _
+   _       _ _(_)_     |  Documentation: https://docs.julialang.org
+  (_)     | (_) (_)    |
+   _ _   _| |_  __ _   |  Type &quot;?&quot; for help, &quot;]?&quot; for Pkg help.
+  | | | | | | |/ _` |  |
+  | | |_| | | | (_| |  |  Version 1.11.1 (2024-10-16)
+ _/ |\__&#39;_|_|_|\__&#39;_|  |  Official https://julialang.org/ release
+|__/                   |
+
+julia&gt;</code></pre>
+<h4 id="installation-de-packages">Installation de packages</h4>
+<p>Julia a un gestionnaire de packages intégré. Pour l'utiliser, tapez
+<code>]</code> dans le REPL pour entrer en mode Pkg, puis utilisez la
+commande <code>add</code> :</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode julia"><code class="sourceCode julia"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>julia<span class="op">&gt;</span> ]</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>(<span class="pp">@v1</span><span class="fl">.11</span>) pkg<span class="op">&gt;</span> add Plots</span></code></pre></div>
+<p>Ceci installera le package Plots, par exemple.</p>
+<p>Après l'installation et la précompilation du package, la touche
+retour arrière (backspace) doit permettre de sortir de ce mode.</p>
+<h4 id="essai-rapide-du-package-plots">Essai rapide du package
+Plots</h4>
+<h5 id="code">Code</h5>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode julia"><code class="sourceCode julia"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>julia<span class="op">&gt;</span> x <span class="op">=</span> <span class="op">-</span><span class="fl">10</span><span class="op">:</span><span class="fl">0.1</span><span class="op">:</span><span class="fl">10</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="op">-</span><span class="fl">10.0</span><span class="op">:</span><span class="fl">0.1</span><span class="op">:</span><span class="fl">10.0</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>julia<span class="op">&gt;</span> <span class="fu">plot</span>(x, <span class="fu">sin</span>.(x))</span></code></pre></div>
+<h5 id="explication-du-code-julia">Explication du code Julia</h5>
+<p>Ce code Julia crée un graphique de la fonction sinus sur un
+intervalle donné. Analysons-le ligne par ligne :</p>
+<ol type="1">
+<li><p><code>x = -10:0.1:10</code></p>
+<ul>
+<li>Cette ligne crée une séquence de nombres allant de -10 à 10 avec un
+pas de 0.1.</li>
+<li>En Julia, <code>:</code> est utilisé pour créer des ranges
+(intervalles).</li>
+<li>Le résultat est un objet de type <code>StepRangeLen</code> qui
+représente cette séquence de nombres.</li>
+</ul></li>
+<li><p><code>plot(x, sin.(x))</code></p>
+<ul>
+<li>Cette ligne crée un graphique en utilisant la fonction
+<code>plot</code> du package Plots (qui doit être importé au préalable
+avec <code>using Plots</code>).</li>
+<li>Le premier argument <code>x</code> représente les valeurs de l'axe
+x.</li>
+<li>Le deuxième argument <code>sin.(x)</code> calcule le sinus de chaque
+valeur dans <code>x</code>.
+<ul>
+<li>Le point <code>.</code> après <code>sin</code> indique une opération
+"broadcastée", c'est-à-dire appliquée élément par élément à
+<code>x</code>.</li>
+</ul></li>
+</ul></li>
+</ol>
+<p>Résultat :</p>
+<ul>
+<li>Ce code produit un graphique de la fonction sinus sur l'intervalle
+[-10, 10].</li>
+<li>L'axe x va de -10 à 10.</li>
+<li>L'axe y montre les valeurs du sinus, qui oscillent entre -1 et
+1.</li>
+<li>Le graphique montrera plusieurs cycles complets de la fonction
+sinus, étant donné l'intervalle choisi.</li>
+</ul>
+<p>Points clés :</p>
+<ol type="1">
+<li>La création de séquences avec le pas désiré est simple en
+Julia.</li>
+<li>Les fonctions mathématiques comme <code>sin</code> peuvent être
+facilement appliquées à des séquences entières.</li>
+<li>La syntaxe de broadcasting (le <code>.</code>) permet d'appliquer
+des fonctions scalaires à des collections de manière concise.</li>
+<li>Julia intègre bien avec des bibliothèques de visualisation comme
+Plots pour créer rapidement des graphiques.</li>
+</ol>
+<p>![[plot.png]] Ce code est un excellent exemple de la simplicité et de
+la puissance de Julia pour les calculs numériques et la visualisation de
+données mathématiques.</p>
+<hr />
+<h2 id="du-repl-à-lécriture-de-scripts---une-évolution-naturelle">Du
+REPL à l'écriture de scripts - Une évolution naturelle</h2>
+<p>Le REPL (Read-Eval-Print Loop) de Julia est un outil puissant pour
+l'exploration interactive et le prototypage rapide. Cependant, à mesure
+que vos projets gagnent en complexité, comme dans le cas de notre mini
+cluster de calcul distribué, la transition vers l'écriture de scripts
+dans un éditeur de texte devient non seulement utile, mais nécessaire.
+Voici pourquoi cette évolution est cruciale :</p>
+<h4 id="persistance-et-reproductibilité">Persistance et
+reproductibilité</h4>
+<ul>
+<li><strong>REPL</strong> : Les commandes sont éphémères et difficiles à
+reproduire exactement.</li>
+<li><strong>Scripts</strong> : Le code est sauvegardé, facilement
+partageable et reproductible.</li>
+</ul>
+<h4 id="organisation-et-structure">Organisation et structure</h4>
+<ul>
+<li><strong>REPL</strong> : Adapté pour des calculs et tests rapides,
+mais peu pratique pour du code complexe.</li>
+<li><strong>Scripts</strong> : Permettent une meilleure organisation du
+code en fonctions, modules, et structures de contrôle.</li>
+</ul>
+<h4 id="gestion-de-versions">Gestion de versions</h4>
+<ul>
+<li><strong>REPL</strong> : Difficile de suivre les changements dans le
+temps.</li>
+<li><strong>Scripts</strong> : Intégration facile avec des systèmes de
+contrôle de version comme Git.</li>
+</ul>
+<h4 id="débogage-et-test">Débogage et test</h4>
+<ul>
+<li><strong>REPL</strong> : Débogage limité à l'exécution en cours.</li>
+<li><strong>Scripts</strong> : Permettent l'utilisation d'outils de
+débogage avancés et la mise en place de tests unitaires.</li>
+</ul>
+<h4 id="réutilisation-et-modularité">Réutilisation et modularité</h4>
+<ul>
+<li><strong>REPL</strong> : Réutilisation du code limitée à la session
+en cours.</li>
+<li><strong>Scripts</strong> : Facilitent la création de fonctions et
+modules réutilisables dans différents projets.</li>
+</ul>
+<h4 id="documentation">Documentation</h4>
+<ul>
+<li><strong>REPL</strong> : Documentation limitée aux commentaires dans
+la session.</li>
+<li><strong>Scripts</strong> : Possibilité d'ajouter une documentation
+détaillée, des docstrings, et même de générer une documentation
+automatique.</li>
+</ul>
+<h4 id="performances">Performances</h4>
+<ul>
+<li><strong>REPL</strong> : Certaines optimisations peuvent ne pas être
+appliquées dans une session interactive.</li>
+<li><strong>Scripts</strong> : Permettent des optimisations plus
+poussées lors de l'exécution.</li>
+</ul>
+<h4 id="collaboration">Collaboration</h4>
+<ul>
+<li><strong>REPL</strong> : Difficile de partager et collaborer sur du
+code complexe.</li>
+<li><strong>Scripts</strong> : Facilitent le travail en équipe et le
+partage de code.</li>
+</ul>
+<h4 id="intégration-avec-dautres-outils">Intégration avec d'autres
+outils</h4>
+<ul>
+<li><strong>REPL</strong> : Utilisation limitée avec d'autres outils de
+développement.</li>
+<li><strong>Scripts</strong> : S'intègrent bien avec des outils comme
+les IDE, les systèmes de build, et les pipelines CI/CD.</li>
+</ul>
+<h4 id="scalabilité">Scalabilité</h4>
+<ul>
+<li><strong>REPL</strong> : Adapté pour de petits calculs et
+expérimentations.</li>
+<li><strong>Scripts</strong> : Essentiels pour des projets à grande
+échelle comme notre mini cluster de calcul distribué.</li>
+</ul>
+<p>La transition du REPL vers l'écriture de scripts est une étape
+naturelle dans l'évolution de vos compétences en Julia. Elle vous permet
+de passer de l'expérimentation à la création de logiciels robustes et
+maintenables. Pour notre projet de mini cluster, l'utilisation de
+scripts sera cruciale pour gérer la complexité du calcul distribué,
+assurer la reproductibilité des résultats, et faciliter la
+collaboration.</p>
+<p>L'utilisation d'un environnement de développement intégré (IDE) comme
+Visual Studio Code avec l'extension Julia combine le meilleur des deux
+mondes : elle offre la possibilité d'écrire et d'organiser des scripts
+complexes tout en maintenant un accès facile à un REPL intégré pour des
+tests rapides et de l'exploration interactive.</p>
+<hr />
+<h2
+id="installation-de-visual-studio-code-avec-lextension-pour-julia">Installation
+de Visual Studio Code avec l'extension pour Julia</h2>
+<h4 id="installation-de-visual-studio-code">Installation de Visual
+Studio Code</h4>
+<ol type="1">
+<li>Rendez-vous sur le site officiel de Visual Studio Code : <a
+href="https://code.visualstudio.com/">https://code.visualstudio.com/</a></li>
+<li>Téléchargez la version appropriée pour votre système d'exploitation
+(Windows, macOS, ou Linux).</li>
+<li>Lancez l'installateur et suivez les instructions à l'écran.</li>
+</ol>
+<h4 id="installation-de-lextension-julia">Installation de l'extension
+Julia</h4>
+<ol type="1">
+<li>Ouvrez Visual Studio Code.</li>
+<li>Cliquez sur l'icône des extensions dans la barre latérale gauche (ou
+utilisez le raccourci Ctrl+Shift+X).</li>
+<li>Dans la barre de recherche, tapez "Julia".</li>
+<li>Recherchez l'extension officielle "Julia" développée par
+julialang.</li>
+<li>Cliquez sur "Install" pour installer l'extension.
+![[vscode_julia_extension.png]]</li>
+</ol>
+<h4 id="configuration-de-lextension-julia">Configuration de l'extension
+Julia</h4>
+<ol type="1">
+<li>Après l'installation, vous devrez peut-être redémarrer VS Code.</li>
+<li>Assurez-vous que Julia est installé sur votre système et accessible
+depuis le terminal.</li>
+<li>Ouvrez les paramètres de VS Code (Fichier &gt; Préférences &gt;
+Paramètres ou Ctrl+,).</li>
+<li>Recherchez "Julia" dans les paramètres.</li>
+<li>Vérifiez que le chemin vers l'exécutable Julia est correct dans
+"Julia: Executable Path" (ou que vous avez bien accès via la variable
+d'environnement PATH, à l'exécutable <code>julia</code>). Si ce n'est
+pas le cas, ajustez-le manuellement.</li>
+</ol>
+<h4
+id="fonctionnalités-clés-de-lextension-julia-pour-vs-code">Fonctionnalités
+clés de l'extension Julia pour VS Code</h4>
+<ul>
+<li><strong>Coloration syntaxique</strong> : La syntaxe Julia est
+automatiquement mise en évidence pour une meilleure lisibilité.</li>
+<li><strong>IntelliSense</strong> : Bénéficiez de l'autocomplétion du
+code et des suggestions.</li>
+<li><strong>Linter intégré</strong> : Détecte les erreurs potentielles
+dans votre code.</li>
+<li><strong>Exécution de code</strong> : Exécutez des blocs de code ou
+des fichiers entiers directement depuis l'éditeur.</li>
+<li><strong>Débogueur</strong> : Utilisez le débogueur intégré pour
+Julia.</li>
+<li><strong>Intégration du REPL</strong> : Accédez au REPL Julia
+directement dans VS Code.</li>
+<li><strong>Gestion des packages</strong> : Gérez vos packages Julia
+directement depuis l'interface de VS Code.</li>
+</ul>
+<h4 id="configuration-recommandée">Configuration recommandée</h4>
+<ol type="1">
+<li><p><strong>Activer l'exécution de cellules</strong> :</p>
+<ul>
+<li>Dans les paramètres, activez "Julia: Execute In Repl" pour exécuter
+des blocs de code délimités par <code>##</code>.</li>
+</ul></li>
+<li><p><strong>Configuration du formateur de code</strong> :</p>
+<ul>
+<li>Installez le package <code>JuliaFormatter</code> dans Julia :
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode julia"><code class="sourceCode julia"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Pkg</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="bu">Pkg</span>.<span class="fu">add</span>(<span class="st">&quot;JuliaFormatter&quot;</span>)</span></code></pre></div></li>
+<li>Dans les paramètres VS Code, activez "Editor: Format On Save" pour
+formater automatiquement votre code Julia.</li>
+</ul></li>
+<li><p><strong>Personnalisation des raccourcis clavier</strong> :</p>
+<ul>
+<li>Vous pouvez personnaliser les raccourcis pour les actions
+spécifiques à Julia dans Fichier &gt; Préférences &gt; Raccourcis
+clavier.</li>
+</ul></li>
+</ol>
+<h4 id="utilisation-basique">Utilisation basique</h4>
+<ol type="1">
+<li>Créez un nouveau fichier <code>sin.jl</code> à l'aide de VS Code
+<ol type="1">
+<li>Allez dans le menu Fichier / Nouveau fichier texte</li>
+<li>Cliquez sur "Sélectionnez un langage" et choisir "Julia"</li>
+</ol></li>
+</ol>
+<p>![[vscode_select_lang.png]]</p>
+<ol type="1">
+<li>Commencez à coder le programme suivant en Julia. Vous verrez la
+coloration syntaxique et les suggestions apparaître.</li>
+</ol>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode julia"><code class="sourceCode julia"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Plots</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> <span class="op">-</span><span class="fl">10</span><span class="op">:</span><span class="fl">0.1</span><span class="op">:</span><span class="fl">10</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(x, <span class="fu">sin</span>.(x))</span></code></pre></div>
+<ol start="2" type="1">
+<li>Pour exécuter du code :
+<ul>
+<li>Sélectionnez un bloc de code et appuyez sur Shift+Enter pour
+l'exécuter dans le REPL.</li>
+<li>Utilisez Ctrl+Enter pour exécuter la ligne courante.</li>
+<li>Utilisez le bouton "Run" en haut à droite pour exécuter le fichier
+entier.</li>
+</ul></li>
+</ol>
+<p>![[vscode_plot.png]]</p>
+<ol start="3" type="1">
+<li>Utilisez la palette de commandes (Ctrl+Shift+P) et tapez "Julia"
+pour voir toutes les commandes spécifiques à Julia disponibles.</li>
+</ol>
+<p>Si on ajoute l'instruction</p>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode julia"><code class="sourceCode julia"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="fu">length</span>(x))</span></code></pre></div>
+<p>Cela afficherait la longueur de la plage x, c'est-à-dire le nombre de
+points dans cette plage, en l'occurrence 201.</p>
+<p>Il est également possible de définir les valeurs de x via</p>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode julia"><code class="sourceCode julia"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> <span class="fu">range</span>(<span class="op">-</span><span class="fl">10</span>, <span class="fl">10</span>, length<span class="op">=</span><span class="fl">200</span>)</span></code></pre></div>
+<p>afin d'avoir 200 points et non 201 !</p>
+<h4 id="conseils-avancés">Conseils avancés</h4>
+<ul>
+<li>Explorez davantage l'intégration avec des outils de visualisation
+comme Plots.jl directement dans VS Code.</li>
+<li>Utilisez les notebooks Julia intégrés pour un développement
+interactif (Pluto.jl notamment).</li>
+<li>Profitez de l'intégration Git pour la gestion de version de vos
+projets Julia.</li>
+</ul>
+<p>En suivant ces étapes, vous aurez un environnement de développement
+Julia puissant et flexible avec Visual Studio Code. Cet environnement
+vous sera particulièrement utile pour notre projet de mini cluster de
+calcul distribué, offrant des outils pour écrire, déboguer et optimiser
+efficacement votre code Julia.</p>
+<ul>
+<li>Familiarisez-vous avec le système de gestion de packages de Julia,
+car il sera crucial pour ajouter des fonctionnalités à vos projets.</li>
+<li>Consultez la documentation officielle de Julia pour des informations
+détaillées sur l'utilisation du langage car l'objectif de cet article
+n'est pas de faire une présentation en profondeur du langage.</li>
+</ul>
+<p>En suivant ces étapes, vous aurez Julia installé et prêt à être
+utilisé sur votre machine de développement, ce qui vous permettra de
+commencer à expérimenter avec le langage avant de passer au calcul
+distribué.</p>
+<hr />
+<h2 id="présentation-du-problème-étudié">Présentation du problème
+étudié</h2>
+<p>Dans le cadre de notre projet de mini cluster de calcul distribué,
+nous allons nous concentrer sur un problème spécifique qui nous
+permettra de mettre en évidence les capacités de Julia en matière de
+calcul parallèle et distribué. Le problème choisi est la résolution
+numérique de l'équation :</p>
+<p>(x - 1)² + (y - 2)² = 1</p>
+<p>qui s'écrit aussi</p>
+<p>(x - 1)² + (y - 2)² - 1 = 0</p>
+<p>Cette équation représente un cercle de rayon 1 centré au point (1, 2)
+dans un plan cartésien.</p>
+<h4 id="pourquoi-ce-problème-">Pourquoi ce problème ?</h4>
+<ol type="1">
+<li><p><strong>Simplicité conceptuelle</strong> : L'équation d'un cercle
+est facile à comprendre, même pour ceux qui ne sont pas experts en
+mathématiques.</p></li>
+<li><p><strong>Complexité calculatoire ajustable</strong> : Bien que
+l'équation soit simple, nous pouvons ajuster la complexité du calcul en
+modifiant la précision requise et l'étendue de l'espace de
+recherche.</p></li>
+<li><p><strong>Parallélisation naturelle</strong> : La recherche de
+points satisfaisant cette équation peut être facilement divisée en
+tâches indépendantes, ce qui la rend idéale pour le calcul parallèle et
+distribué.</p></li>
+<li><p><strong>Visualisation possible</strong> : Les résultats peuvent
+être visualisés graphiquement, ce qui aide à vérifier la justesse de nos
+calculs.</p></li>
+<li><p><strong>Applicabilité réelle</strong> : Bien que simplifié, ce
+type de problème est représentatif de nombreuses tâches de recherche
+numérique en sciences et en ingénierie.</p></li>
+</ol>
+<h4 id="notre-approche">Notre approche</h4>
+<p>Nous allons résoudre ce problème en suivant ces étapes :</p>
+<ol type="1">
+<li><p><strong>Définition de l'espace de recherche</strong> : Nous
+considérerons un espace où x et y varient chacun de -10 à 10.</p></li>
+<li><p><strong>Discrétisation</strong> : Nous diviserons cet espace en
+une grille fine de points.</p></li>
+<li><p><strong>Évaluation</strong> : Pour chaque point de la grille,
+nous évaluerons la proximité du résultat de l'équation à zéro.</p></li>
+<li><p><strong>Parallélisation</strong> : Nous distribuerons ces
+évaluations sur plusieurs threads et/ou machines.</p></li>
+<li><p><strong>Collecte des résultats</strong> : Nous rassemblerons les
+points qui satisfont l'équation (à une certaine tolérance
+près).</p></li>
+</ol>
+<p>Cette approche nous permettra de démontrer :</p>
+<ul>
+<li>Comment Julia peut être utilisé pour exprimer ce problème de manière
+concise.</li>
+<li>Comment passer d'une implémentation séquentielle à une
+implémentation parallèle puis distribuée.</li>
+<li>L'impact de la parallélisation et de la distribution sur les
+performances de calcul.</li>
+</ul>
+<p>Dans les sections suivantes, nous implémenterons cette solution
+d'abord de manière séquentielle, puis en utilisant les capacités de
+multithreading de Julia, et enfin en distribuant le calcul sur notre
+mini cluster.</p>
+<hr />
+<h2 id="résolution-numérique-du-problème">Résolution numérique du
+problème</h2>
+<p>Nous allons réaliser un programme Julia pour résoudre numériquement
+et visualiser l'équation d'un cercle. Plus précisément, notre objectif
+est de :</p>
+<ol type="1">
+<li>Résoudre l'équation (x-1)² + (y-2)² - 1 = 0, qui représente un
+cercle de rayon 1 centré en (1, 2).</li>
+<li>Visualiser la grille de recherche, les solutions trouvées et le
+cercle théorique.</li>
+<li>Vérifier la précision de nos résultats en calculant la distance
+entre chaque solution et le centre du cercle.</li>
+</ol>
+<p>Notre programme utilisera une approche par force brute, en évaluant
+l'équation sur une grille de points dans un espace bidimensionnel. Nous
+afficherons ensuite les résultats graphiquement et numériquement pour
+une analyse approfondie.</p>
+<div class="sourceCode" id="cb17"><pre
+class="sourceCode julia"><code class="sourceCode julia"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Plots</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">f</span>(x, y)</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (x <span class="op">-</span> <span class="fl">1</span>)<span class="op">^</span><span class="fl">2</span> <span class="op">+</span> (y <span class="op">-</span> <span class="fl">2</span>)<span class="op">^</span><span class="fl">2</span> <span class="op">-</span> <span class="fl">1</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">solve_equation</span>(x_range, y_range, tolerance)</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>    solutions <span class="op">=</span> <span class="dt">Tuple</span>{<span class="dt">Float64</span>, <span class="dt">Float64</span>}[]</span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>    grid_points <span class="op">=</span> <span class="dt">Tuple</span>{<span class="dt">Float64</span>, <span class="dt">Float64</span>}[]</span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> x <span class="kw">in</span> x_range</span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> y <span class="kw">in</span> y_range</span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>            <span class="fu">push!</span>(grid_points, (x, y))</span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>            <span class="fu">abs</span>(<span class="fu">f</span>(x, y)) <span class="op">&lt;</span> tolerance <span class="op">&amp;&amp;</span> <span class="fu">push!</span>(solutions, (x, y))</span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> solutions, grid_points</span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">plot_results</span>(solutions, grid_points)</span>
+<span id="cb17-22"><a href="#cb17-22" aria-hidden="true" tabindex="-1"></a>    p <span class="op">=</span> <span class="fu">plot</span>(aspect_ratio<span class="op">=:</span>equal, xlabel<span class="op">=</span><span class="st">&quot;x&quot;</span>, ylabel<span class="op">=</span><span class="st">&quot;y&quot;</span>, </span>
+<span id="cb17-23"><a href="#cb17-23" aria-hidden="true" tabindex="-1"></a>             title<span class="op">=</span><span class="st">&quot;Solutions of (x-1)² + (y-2)² - 1 = 0&quot;</span>,</span>
+<span id="cb17-24"><a href="#cb17-24" aria-hidden="true" tabindex="-1"></a>             xlims<span class="op">=</span>(<span class="op">-</span><span class="fl">10</span>, <span class="fl">10</span>), ylims<span class="op">=</span>(<span class="op">-</span><span class="fl">10</span>, <span class="fl">10</span>))</span>
+<span id="cb17-25"><a href="#cb17-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-26"><a href="#cb17-26" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scatter!</span>(p, grid_points, label<span class="op">=</span><span class="st">&quot;Grid Points&quot;</span>, color<span class="op">=:</span>lightgray, </span>
+<span id="cb17-27"><a href="#cb17-27" aria-hidden="true" tabindex="-1"></a>             markersize<span class="op">=</span><span class="fl">1</span>, markerstrokewidth<span class="op">=</span><span class="fl">0</span>, alpha<span class="op">=</span><span class="fl">0.5</span>)</span>
+<span id="cb17-28"><a href="#cb17-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-29"><a href="#cb17-29" aria-hidden="true" tabindex="-1"></a>    t <span class="op">=</span> <span class="fl">0</span><span class="op">:</span><span class="fl">0.01</span><span class="op">:</span><span class="fl">2</span>π</span>
+<span id="cb17-30"><a href="#cb17-30" aria-hidden="true" tabindex="-1"></a>    <span class="fu">plot!</span>(p, <span class="fu">cos</span>.(t) <span class="op">.+</span> <span class="fl">1</span>, <span class="fu">sin</span>.(t) <span class="op">.+</span> <span class="fl">2</span>, label<span class="op">=</span><span class="st">&quot;Theoretical Circle&quot;</span>, </span>
+<span id="cb17-31"><a href="#cb17-31" aria-hidden="true" tabindex="-1"></a>          color<span class="op">=:</span>black, linewidth<span class="op">=</span><span class="fl">2</span>)</span>
+<span id="cb17-32"><a href="#cb17-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-33"><a href="#cb17-33" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scatter!</span>(p, solutions, label<span class="op">=</span><span class="st">&quot;Numerical Solutions&quot;</span>, </span>
+<span id="cb17-34"><a href="#cb17-34" aria-hidden="true" tabindex="-1"></a>             color<span class="op">=:</span>red, markersize<span class="op">=</span><span class="fl">3</span>)</span>
+<span id="cb17-35"><a href="#cb17-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-36"><a href="#cb17-36" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scatter!</span>(p, [<span class="fl">1</span>], [<span class="fl">2</span>], label<span class="op">=</span><span class="st">&quot;Center (1, 2)&quot;</span>, color<span class="op">=:</span>blue, markersize<span class="op">=</span><span class="fl">5</span>)</span>
+<span id="cb17-37"><a href="#cb17-37" aria-hidden="true" tabindex="-1"></a>    <span class="fu">hline!</span>(p, [<span class="fl">0</span>], color<span class="op">=:</span>gray, label<span class="op">=</span><span class="st">&quot;x-axis&quot;</span>, linewidth<span class="op">=</span><span class="fl">1</span>)</span>
+<span id="cb17-38"><a href="#cb17-38" aria-hidden="true" tabindex="-1"></a>    <span class="fu">vline!</span>(p, [<span class="fl">0</span>], color<span class="op">=:</span>gray, label<span class="op">=</span><span class="st">&quot;y-axis&quot;</span>, linewidth<span class="op">=</span><span class="fl">1</span>)</span>
+<span id="cb17-39"><a href="#cb17-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-40"><a href="#cb17-40" aria-hidden="true" tabindex="-1"></a>    <span class="fu">display</span>(p)</span>
+<span id="cb17-41"><a href="#cb17-41" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb17-42"><a href="#cb17-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-43"><a href="#cb17-43" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">print_results</span>(solutions, grid_points)</span>
+<span id="cb17-44"><a href="#cb17-44" aria-hidden="true" tabindex="-1"></a>    <span class="fu">println</span>(<span class="st">&quot;Total number of grid points: </span><span class="sc">$</span>(<span class="fu">length</span>(grid_points))<span class="st">&quot;</span>)</span>
+<span id="cb17-45"><a href="#cb17-45" aria-hidden="true" tabindex="-1"></a>    <span class="fu">println</span>(<span class="st">&quot;Total number of solutions: </span><span class="sc">$</span>(<span class="fu">length</span>(solutions))<span class="st">&quot;</span>)</span>
+<span id="cb17-46"><a href="#cb17-46" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-47"><a href="#cb17-47" aria-hidden="true" tabindex="-1"></a>    <span class="fu">println</span>(<span class="st">&quot;</span><span class="sc">\n</span><span class="st">Some solutions found:&quot;</span>)</span>
+<span id="cb17-48"><a href="#cb17-48" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> (i, (x, y)) <span class="kw">in</span> <span class="fu">enumerate</span>(solutions)</span>
+<span id="cb17-49"><a href="#cb17-49" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> i <span class="op">&lt;=</span> <span class="fl">5</span></span>
+<span id="cb17-50"><a href="#cb17-50" aria-hidden="true" tabindex="-1"></a>            <span class="fu">println</span>(<span class="st">&quot;x = </span><span class="sc">$</span>x<span class="st">, y = </span><span class="sc">$</span>y<span class="st">&quot;</span>)</span>
+<span id="cb17-51"><a href="#cb17-51" aria-hidden="true" tabindex="-1"></a>        <span class="cf">elseif</span> i <span class="op">==</span> <span class="fl">6</span></span>
+<span id="cb17-52"><a href="#cb17-52" aria-hidden="true" tabindex="-1"></a>            <span class="fu">println</span>(<span class="st">&quot;...&quot;</span>)</span>
+<span id="cb17-53"><a href="#cb17-53" aria-hidden="true" tabindex="-1"></a>            <span class="cf">break</span></span>
+<span id="cb17-54"><a href="#cb17-54" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
+<span id="cb17-55"><a href="#cb17-55" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb17-56"><a href="#cb17-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-57"><a href="#cb17-57" aria-hidden="true" tabindex="-1"></a>    <span class="fu">println</span>(<span class="st">&quot;</span><span class="sc">\n</span><span class="st">Checking distances from center (1, 2):&quot;</span>)</span>
+<span id="cb17-58"><a href="#cb17-58" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> (i, (x, y)) <span class="kw">in</span> <span class="fu">enumerate</span>(solutions)</span>
+<span id="cb17-59"><a href="#cb17-59" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> i <span class="op">&lt;=</span> <span class="fl">5</span></span>
+<span id="cb17-60"><a href="#cb17-60" aria-hidden="true" tabindex="-1"></a>            distance <span class="op">=</span> <span class="fu">sqrt</span>((x <span class="op">-</span> <span class="fl">1</span>)<span class="op">^</span><span class="fl">2</span> <span class="op">+</span> (y <span class="op">-</span> <span class="fl">2</span>)<span class="op">^</span><span class="fl">2</span>)</span>
+<span id="cb17-61"><a href="#cb17-61" aria-hidden="true" tabindex="-1"></a>            <span class="fu">println</span>(<span class="st">&quot;Solution (</span><span class="sc">$</span>x<span class="st">, </span><span class="sc">$</span>y<span class="st">): distance = </span><span class="sc">$</span>distance<span class="st">&quot;</span>)</span>
+<span id="cb17-62"><a href="#cb17-62" aria-hidden="true" tabindex="-1"></a>        <span class="cf">elseif</span> i <span class="op">==</span> <span class="fl">6</span></span>
+<span id="cb17-63"><a href="#cb17-63" aria-hidden="true" tabindex="-1"></a>            <span class="fu">println</span>(<span class="st">&quot;...&quot;</span>)</span>
+<span id="cb17-64"><a href="#cb17-64" aria-hidden="true" tabindex="-1"></a>            <span class="cf">break</span></span>
+<span id="cb17-65"><a href="#cb17-65" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
+<span id="cb17-66"><a href="#cb17-66" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb17-67"><a href="#cb17-67" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb17-68"><a href="#cb17-68" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-69"><a href="#cb17-69" aria-hidden="true" tabindex="-1"></a>x_range <span class="op">=</span> y_range <span class="op">=</span> <span class="op">-</span><span class="fl">10</span><span class="op">:</span><span class="fl">0.1</span><span class="op">:</span><span class="fl">10</span></span>
+<span id="cb17-70"><a href="#cb17-70" aria-hidden="true" tabindex="-1"></a>tolerance <span class="op">=</span> <span class="fl">0.01</span></span>
+<span id="cb17-71"><a href="#cb17-71" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-72"><a href="#cb17-72" aria-hidden="true" tabindex="-1"></a>solutions, grid_points <span class="op">=</span> <span class="fu">solve_equation</span>(x_range, y_range, tolerance)</span>
+<span id="cb17-73"><a href="#cb17-73" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_results</span>(solutions, grid_points)</span>
+<span id="cb17-74"><a href="#cb17-74" aria-hidden="true" tabindex="-1"></a><span class="fu">print_results</span>(solutions, grid_points)</span></code></pre></div>
+<p>Maintenant, examinons en détail comment ce code fonctionne pour
+atteindre nos objectifs :</p>
+<ol type="1">
+<li>Nous commençons par importer la bibliothèque Plots, essentielle pour
+la visualisation de nos résultats.</li>
+<li>La fonction <code>f(x, y)</code> définit l'équation de notre cercle.
+Elle retourne la valeur de (x-1)² + (y-2)² - 1 pour chaque point (x,
+y).</li>
+<li>La fonction <code>solve_equation</code> est le cœur de notre
+résolution numérique :
+<ul>
+<li>Elle parcourt une grille de points définie par x_range et
+y_range.</li>
+<li>Chaque point de la grille est stocké pour la visualisation
+ultérieure.</li>
+<li>Si la valeur absolue de f(x,y) est inférieure à notre tolérance, le
+point est considéré comme une solution.</li>
+</ul></li>
+<li>La fonction <code>plot_results</code> crée une visualisation
+complète de nos résultats :
+<ul>
+<li>Elle affiche tous les points de la grille en gris clair, donnant un
+aperçu de notre espace de recherche.</li>
+<li>Le cercle théorique est tracé en noir pour comparaison.</li>
+<li>Les solutions numériques sont marquées en rouge, permettant de voir
+leur distribution autour du cercle théorique.</li>
+<li>Le centre du cercle (1, 2) est mis en évidence en bleu.</li>
+<li>Les axes x et y sont ajoutés pour une meilleure orientation.</li>
+</ul></li>
+<li>La fonction <code>print_results</code> fournit une analyse numérique
+de nos résultats :
+<ul>
+<li>Elle affiche le nombre total de points de la grille examinés.</li>
+<li>Elle affiche le nombre total de solutions trouvées.</li>
+<li>Elle liste les cinq premières solutions pour un aperçu rapide.</li>
+<li>Pour chaque solution, elle calcule et affiche la distance par
+rapport au centre du cercle, permettant de vérifier la précision de nos
+résultats.</li>
+</ul></li>
+<li>Dans la partie principale du script, nous définissons nos paramètres
+:
+<ul>
+<li>Les plages x et y vont de -10 à 10 avec un pas de 0.1, offrant une
+vue étendue autour du cercle.</li>
+<li>La tolérance est fixée à 0.01, déterminant la précision de nos
+solutions.</li>
+</ul></li>
+<li>Enfin, nous exécutons notre processus de résolution, affichons les
+résultats graphiquement, et imprimons les analyses numériques.</li>
+</ol>
+<p>Ce programme nous permet non seulement de résoudre numériquement
+l'équation du cercle, mais aussi de visualiser le processus de
+résolution et de vérifier la précision de nos résultats. C'est un
+excellent outil pour comprendre la relation entre les équations
+algébriques et leur représentation géométrique, ainsi que pour explorer
+les méthodes de résolution numérique.</p>
+<p>L'exécution de ce programme affiche dans la console ceci :</p>
+<pre><code>Total number of grid points: 40401
+Total number of solutions: 12
+
+Some solutions found:
+x = 0.0, y = 2.0
+x = 0.2, y = 1.4
+x = 0.2, y = 2.6
+x = 0.4, y = 1.2
+x = 0.4, y = 2.8
+...
+
+Checking distances from center (1, 2):
+Solution (0.0, 2.0): distance = 1.0
+Solution (0.2, 1.4): distance = 1.0
+Solution (0.2, 2.6): distance = 1.0
+Solution (0.4, 1.2): distance = 1.0
+Solution (0.4, 2.8): distance = 0.9999999999999998
+...</code></pre>
+<p>et le graphique suivant est obtenu</p>
+<p>![[solve.png]]</p>
+<p>40401 représente le nombre total de points évalués dans notre
+recherche de solutions. Il est calculé comme le produit du nombre de
+points dans la plage x et dans la plage y (201 * 201 = 40401, car nous
+avons 201 points de -10 à 10 avec un pas de 0.1).</p>
+<p>Le programme détecte, avec la tolérance fixée, 12 points solutions de
+l'équation.</p>
+<h3 id="performance-monothread">Performance monothread</h3>
+<p>Nous allons désormais faire quelques mesures de performance du "cœur"
+de ce code. Nous utiliserons les outils de profilage de Julia, notamment
+la macro <code>@time</code> pour des mesures simples, et le package
+<code>BenchmarkTools</code> pour des mesures plus précises et
+répétées.</p>
+<p>Afin d'utiliser <code>BenchmarkTools</code> dans Julia, il faut
+d'abord l'installer. <code>BenchmarkTools</code> est un package externe
+qui n'est pas inclus dans l'installation standard de Julia. Voici
+comment procéder pour l'installer :</p>
+<ol type="1">
+<li><p>Ouvrez une session Julia (soit dans le terminal, soit dans un
+environnement de développement intégré comme VS Code avec l'extension
+Julia).</p></li>
+<li><p>Entrez dans le mode gestionnaire de paquets en appuyant sur
+<code>]</code> (crochet fermant).</p></li>
+<li><p>Dans ce mode, tapez la commande suivante :</p>
+<p><code>add BenchmarkTools</code></p></li>
+<li><p>Appuyez sur Entrée et attendez que l'installation se
+termine.</p></li>
+<li><p>Une fois l'installation terminée, vous pouvez quitter le mode
+gestionnaire de paquets en appuyant sur la touche Backspace ou
+Delete.</p></li>
+</ol>
+<p>Alternativement, vous pouvez installer BenchmarkTools directement
+dans le REPL Julia sans entrer dans le mode gestionnaire de paquets en
+exécutant :</p>
+<div class="sourceCode" id="cb19"><pre
+class="sourceCode julia"><code class="sourceCode julia"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Pkg</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="bu">Pkg</span>.<span class="fu">add</span>(<span class="st">&quot;BenchmarkTools&quot;</span>)</span></code></pre></div>
+<p>Créez et sauvegarder le script suivant</p>
+<div class="sourceCode" id="cb20"><pre
+class="sourceCode julia"><code class="sourceCode julia"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Plots</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">BenchmarkTools</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">f</span>(x, y)</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (x <span class="op">-</span> <span class="fl">1</span>)<span class="op">^</span><span class="fl">2</span> <span class="op">+</span> (y <span class="op">-</span> <span class="fl">2</span>)<span class="op">^</span><span class="fl">2</span> <span class="op">-</span> <span class="fl">1</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">solve_equation</span>(x_range, y_range, tolerance)</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>    solutions <span class="op">=</span> <span class="dt">Tuple</span>{<span class="dt">Float64</span>, <span class="dt">Float64</span>}[]</span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>    grid_points <span class="op">=</span> <span class="dt">Tuple</span>{<span class="dt">Float64</span>, <span class="dt">Float64</span>}[]</span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> x <span class="kw">in</span> x_range, y <span class="kw">in</span> y_range</span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>        <span class="fu">push!</span>(grid_points, (x, y))</span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>        <span class="fu">abs</span>(<span class="fu">f</span>(x, y)) <span class="op">&lt;</span> tolerance <span class="op">&amp;&amp;</span> <span class="fu">push!</span>(solutions, (x, y))</span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> solutions, grid_points</span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a><span class="co"># Définir les paramètres pour les tests</span></span>
+<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a>grid_size <span class="op">=</span> <span class="fl">100</span></span>
+<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a>x_range <span class="op">=</span> y_range <span class="op">=</span> <span class="fu">range</span>(<span class="op">-</span><span class="fl">10</span>, <span class="fl">10</span>, length<span class="op">=</span>grid_size)</span>
+<span id="cb20-23"><a href="#cb20-23" aria-hidden="true" tabindex="-1"></a>tolerance <span class="op">=</span> <span class="fl">0.01</span></span>
+<span id="cb20-24"><a href="#cb20-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-25"><a href="#cb20-25" aria-hidden="true" tabindex="-1"></a><span class="co"># Test simple avec @time</span></span>
+<span id="cb20-26"><a href="#cb20-26" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">&quot;Performance test using @time:&quot;</span>)</span>
+<span id="cb20-27"><a href="#cb20-27" aria-hidden="true" tabindex="-1"></a><span class="pp">@time</span> <span class="fu">solve_equation</span>(x_range, y_range, tolerance);</span>
+<span id="cb20-28"><a href="#cb20-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-29"><a href="#cb20-29" aria-hidden="true" tabindex="-1"></a><span class="co"># Test plus précis avec BenchmarkTools</span></span>
+<span id="cb20-30"><a href="#cb20-30" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">&quot;</span><span class="sc">\n</span><span class="st">Performance test using @benchmark:&quot;</span>)</span>
+<span id="cb20-31"><a href="#cb20-31" aria-hidden="true" tabindex="-1"></a>benchmark_result <span class="op">=</span> <span class="pp">@benchmark</span> <span class="fu">solve_equation</span>(<span class="op">$</span>x_range, <span class="op">$</span>y_range, <span class="op">$</span>tolerance)</span>
+<span id="cb20-32"><a href="#cb20-32" aria-hidden="true" tabindex="-1"></a><span class="fu">display</span>(benchmark_result)</span>
+<span id="cb20-33"><a href="#cb20-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-34"><a href="#cb20-34" aria-hidden="true" tabindex="-1"></a><span class="co"># Test de la fonction f séparément</span></span>
+<span id="cb20-35"><a href="#cb20-35" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">&quot;</span><span class="sc">\n</span><span class="st">Performance test of function f:&quot;</span>)</span>
+<span id="cb20-36"><a href="#cb20-36" aria-hidden="true" tabindex="-1"></a><span class="pp">@benchmark</span> <span class="fu">f</span>(<span class="op">$</span>(x_range[<span class="fl">1</span>]), <span class="op">$</span>(y_range[<span class="fl">1</span>]))</span>
+<span id="cb20-37"><a href="#cb20-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-38"><a href="#cb20-38" aria-hidden="true" tabindex="-1"></a><span class="co"># Test avec différentes tailles de grille</span></span>
+<span id="cb20-39"><a href="#cb20-39" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">&quot;</span><span class="sc">\n</span><span class="st">Performance tests with different grid sizes:&quot;</span>)</span>
+<span id="cb20-40"><a href="#cb20-40" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> size <span class="kw">in</span> [<span class="fl">50</span>, <span class="fl">100</span>, <span class="fl">200</span>, <span class="fl">400</span>]</span>
+<span id="cb20-41"><a href="#cb20-41" aria-hidden="true" tabindex="-1"></a>    <span class="kw">local</span> x_range <span class="op">=</span> <span class="fu">range</span>(<span class="op">-</span><span class="fl">10</span>, <span class="fl">10</span>, length<span class="op">=</span>size)</span>
+<span id="cb20-42"><a href="#cb20-42" aria-hidden="true" tabindex="-1"></a>    <span class="kw">local</span> y_range <span class="op">=</span> x_range  <span class="co"># Utiliser la même plage pour y</span></span>
+<span id="cb20-43"><a href="#cb20-43" aria-hidden="true" tabindex="-1"></a>    <span class="fu">println</span>(<span class="st">&quot;Grid size: </span><span class="sc">$</span>size<span class="st"> x </span><span class="sc">$</span>size<span class="st">&quot;</span>)</span>
+<span id="cb20-44"><a href="#cb20-44" aria-hidden="true" tabindex="-1"></a>    <span class="pp">@time</span> <span class="fu">solve_equation</span>(x_range, y_range, tolerance);</span>
+<span id="cb20-45"><a href="#cb20-45" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div>
+<p>Voici un résumé des caractéristiques principales de ma machine de
+développement. Composants principaux :</p>
+<ul>
+<li>Processeur : Intel Core i7-13700K</li>
+<li>Carte mère : MSI B760 Gaming Plus WiFi DDR5</li>
+<li>Mémoire : 32 Go DDR5 5200 MHz Kingston FURY Beast (2x16 Go)</li>
+<li>Carte graphique : NVIDIA GeForce RTX 4060 Ti 16 Go GDDR6</li>
+<li>Stockage primaire : SSD NVMe WD BLACK SN850X 2 To</li>
+<li>Stockage secondaire : Aucun disque dur supplémentaire</li>
+<li>Alimentation : Corsair RM850e 850W 80+ Gold</li>
+<li>Boîtier : Systemtreff Plexus-ST-801 (noir) Refroidissement et
+périphériques :</li>
+<li>Ventirad : Enermax ETS-T50 AXE ARGB (blanc) Système d'exploitation
+et logiciels :</li>
+<li>Windows 11 Pro 64 bits</li>
+</ul>
+<p>Nous obtenons alors les résultats suivants avec cette machine :</p>
+<pre><code>Performance test using @time:
+  0.013812 seconds (12.64 k allocations: 1.248 MiB, 99.57% compilation time)
+
+Performance test using @benchmark:
+BenchmarkTools.Trial: 10000 samples with 1 evaluation.
+ Range (min … max):  27.600 μs …   6.673 ms  ┊ GC (min … max):  0.00% … 98.35%
+ Time  (median):     31.800 μs               ┊ GC (median):     0.00%
+ Time  (mean ± σ):   56.762 μs ± 161.322 μs  ┊ GC (mean ± σ):  21.97% ± 11.29%
+
+  █▅▂▂▂▁▄▄▂                                                    ▁
+  ███████████▇▇▆▅▃▅▅▄▄▆▁▁▃▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▄▄▅▆▅▅▅▅▅▅▅▄ █
+  27.6 μs       Histogram: log(frequency) by time       593 μs &lt;
+
+ Memory estimate: 652.31 KiB, allocs estimate: 16.
+
+Performance test of function f:
+
+Performance tests with different grid sizes:
+Grid size: 50 x 50
+  0.000019 seconds (15 allocations: 107.469 KiB)
+Grid size: 100 x 100
+  0.000061 seconds (19 allocations: 652.469 KiB)
+Grid size: 200 x 200
+  0.000269 seconds (22 allocations: 1.587 MiB)
+Grid size: 400 x 400
+  0.001010 seconds (27 allocations: 7.982 MiB)</code></pre>
+<p>On observe bien évidemment que le temps de calcul augmente avec la
+taille de la grille mais qu'une majeure partie du temps est passée à la
+compilation. Nous allons forcer notre fonction de calcul à s'exécuter
+plus lentement en ajoutant un appel à la fonction
+<code>sleep</code>.</p>
+<div class="sourceCode" id="cb22"><pre
+class="sourceCode julia"><code class="sourceCode julia"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Plots</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">f</span>(x, y)</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sleep</span>(<span class="fl">1E-9</span>)</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (x <span class="op">-</span> <span class="fl">1</span>)<span class="op">^</span><span class="fl">2</span> <span class="op">+</span> (y <span class="op">-</span> <span class="fl">2</span>)<span class="op">^</span><span class="fl">2</span> <span class="op">-</span> <span class="fl">1</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">solve_equation</span>(x_range, y_range, tolerance)</span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>    solutions <span class="op">=</span> <span class="dt">Tuple</span>{<span class="dt">Float64</span>,<span class="dt">Float64</span>}[]</span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>    grid_points <span class="op">=</span> <span class="dt">Tuple</span>{<span class="dt">Float64</span>,<span class="dt">Float64</span>}[]</span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> x <span class="kw">in</span> x_range, y <span class="kw">in</span> y_range</span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>        <span class="fu">push!</span>(grid_points, (x, y))</span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>        <span class="fu">abs</span>(<span class="fu">f</span>(x, y)) <span class="op">&lt;</span> tolerance <span class="op">&amp;&amp;</span> <span class="fu">push!</span>(solutions, (x, y))</span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> solutions, grid_points</span>
+<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-20"><a href="#cb22-20" aria-hidden="true" tabindex="-1"></a><span class="co"># Définir les paramètres pour les tests</span></span>
+<span id="cb22-21"><a href="#cb22-21" aria-hidden="true" tabindex="-1"></a>grid_size <span class="op">=</span> <span class="fl">100</span></span>
+<span id="cb22-22"><a href="#cb22-22" aria-hidden="true" tabindex="-1"></a>x_range <span class="op">=</span> y_range <span class="op">=</span> <span class="fu">range</span>(<span class="op">-</span><span class="fl">10</span>, <span class="fl">10</span>, length<span class="op">=</span>grid_size)</span>
+<span id="cb22-23"><a href="#cb22-23" aria-hidden="true" tabindex="-1"></a>tolerance <span class="op">=</span> <span class="fl">0.01</span></span>
+<span id="cb22-24"><a href="#cb22-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-25"><a href="#cb22-25" aria-hidden="true" tabindex="-1"></a><span class="co"># Test simple avec @time</span></span>
+<span id="cb22-26"><a href="#cb22-26" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">&quot;Performance test using @time:&quot;</span>)</span>
+<span id="cb22-27"><a href="#cb22-27" aria-hidden="true" tabindex="-1"></a><span class="pp">@time</span> <span class="fu">solve_equation</span>(x_range, y_range, tolerance);</span></code></pre></div>
+<p>L'exécution de ce script indique désormais un temps d'exécution
+d'environ 2 minutes 35.</p>
+<pre><code>Performance test using @time:
+155.584363 seconds (64.85 k allocations: 3.034 MiB, 0.01% compilation time)</code></pre>
+<p>C'est assez long... et pénible d'attendre... diminuons la taille de
+la grille à 10 x 10.</p>
+<pre><code>Performance test using @time:
+  1.560340 seconds (24.26 k allocations: 1.203 MiB, 0.99% compilation time)</code></pre>
+<p>et voyons maintenant l'influence du multithreading.</p>
+<hr />
+<h2 id="multithreading-avec-julia">Multithreading avec Julia</h2>
+<p>Le multithreading est une technique de programmation qui permet à un
+programme d'exécuter plusieurs tâches simultanément au sein d'un même
+processus. Voici une explication détaillée du concept :</p>
+<ol type="1">
+<li>Définition de base :</li>
+</ol>
+<p>Le multithreading consiste à diviser un programme en plusieurs
+"threads" (fils d'exécution) qui peuvent s'exécuter concurremment.
+Chaque thread représente une séquence d'instructions qui peut être
+exécutée indépendamment des autres.</p>
+<ol start="2" type="1">
+<li>Analogie :</li>
+</ol>
+<p>Imaginez une cuisine de restaurant :</p>
+<ul>
+<li>Un chef seul (programme à thread unique) ne peut préparer qu'un plat
+à la fois.</li>
+<li>Plusieurs chefs (multithreading) peuvent travailler simultanément
+sur différents aspects d'un repas, augmentant ainsi l'efficacité
+globale.</li>
+</ul>
+<ol start="3" type="1">
+<li>Fonctionnement :</li>
+</ol>
+<ul>
+<li>Parallélisme : Sur les processeurs multi-cœurs, les threads peuvent
+s'exécuter véritablement en parallèle sur différents cœurs.</li>
+<li>Concurrence : Même sur un seul cœur, le système d'exploitation
+alterne rapidement entre les threads, donnant l'illusion d'une exécution
+simultanée.</li>
+</ul>
+<ol start="4" type="1">
+<li>Avantages :</li>
+</ol>
+<ul>
+<li>Performance accrue : Utilisation optimale des ressources du
+processeur, surtout sur les systèmes multi-cœurs.</li>
+<li>Réactivité améliorée : Les applications restent réactives même lors
+de tâches intensives.</li>
+<li>Efficacité : Permet d'effectuer des opérations en arrière-plan sans
+bloquer l'interface utilisateur.</li>
+</ul>
+<ol start="5" type="1">
+<li>Défis :</li>
+</ol>
+<ul>
+<li>Synchronisation : Gérer l'accès concurrent aux ressources partagées
+pour éviter les conflits.</li>
+<li>Deadlocks : Situations où des threads se bloquent mutuellement,
+attendant des ressources.</li>
+<li>Complexité : Le code multithreadé peut être plus difficile à écrire,
+déboguer et maintenir.</li>
+</ul>
+<ol start="6" type="1">
+<li>Utilisations courantes :</li>
+</ol>
+<ul>
+<li>Interfaces utilisateur réactives</li>
+<li>Traitement de données massives</li>
+<li>Serveurs web gérant de multiples connexions</li>
+<li>Applications de rendu graphique</li>
+</ul>
+<ol start="7" type="1">
+<li>Implémentation en Julia :</li>
+</ol>
+<p>Julia offre plusieurs outils pour le multithreading :</p>
+<ul>
+<li><code>Threads.@threads</code> pour paralléliser les boucles</li>
+<li><code>Threads.@spawn</code> pour créer des tâches asynchrones</li>
+<li>Variables atomiques et verrous pour la synchronisation</li>
+</ul>
+<ol start="8" type="1">
+<li>Considérations :</li>
+</ol>
+<ul>
+<li>Le gain de performance dépend de la nature de la tâche et du nombre
+de cœurs disponibles.</li>
+<li>Certaines tâches, comme les opérations d'entrée/sortie intensives,
+bénéficient moins du multithreading.</li>
+</ul>
+<ol start="9" type="1">
+<li>Multithreading vs Multiprocessing :</li>
+</ol>
+<ul>
+<li>Multithreading : Threads partagent la mémoire au sein d'un même
+processus.</li>
+<li>Multiprocessing : Processus séparés avec mémoire isolée,
+communication via IPC (Inter-Process Communication).</li>
+</ul>
+<p>En conclusion, le multithreading est un outil puissant pour améliorer
+les performances et la réactivité des applications, particulièrement
+adapté aux systèmes modernes multi-cœurs. Cependant, il nécessite une
+conception soigneuse pour éviter les pièges courants comme les
+conditions de course et les deadlocks.</p>
+<p>Reprenons notre exemple précédent (avec une grille de 10 x 10) et
+adaptons le afin de bénéficier des apports du multithreading.</p>
+<div class="sourceCode" id="cb25"><pre
+class="sourceCode julia"><code class="sourceCode julia"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Plots</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Base.Threads</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">f</span>(x, y)</span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sleep</span>(<span class="fl">1E-9</span>)</span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (x <span class="op">-</span> <span class="fl">1</span>)<span class="op">^</span><span class="fl">2</span> <span class="op">+</span> (y <span class="op">-</span> <span class="fl">2</span>)<span class="op">^</span><span class="fl">2</span> <span class="op">-</span> <span class="fl">1</span></span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">solve_equation_threaded</span>(x_range, y_range, tolerance)</span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>    solutions <span class="op">=</span> <span class="fu">Vector</span><span class="dt">{Tuple{Float64,Float64}}</span>()</span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>    grid_points <span class="op">=</span> <span class="fu">Vector</span><span class="dt">{Tuple{Float64,Float64}}</span>()</span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Pré-allouer les vecteurs pour chaque thread</span></span>
+<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a>    local_solutions <span class="op">=</span> [<span class="dt">Tuple</span>{<span class="dt">Float64</span>,<span class="dt">Float64</span>}[] for _ <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fu">nthreads</span>()]</span>
+<span id="cb25-15"><a href="#cb25-15" aria-hidden="true" tabindex="-1"></a>    local_grid_points <span class="op">=</span> [<span class="dt">Tuple</span>{<span class="dt">Float64</span>,<span class="dt">Float64</span>}[] for _ <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fu">nthreads</span>()]</span>
+<span id="cb25-16"><a href="#cb25-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-17"><a href="#cb25-17" aria-hidden="true" tabindex="-1"></a>    <span class="pp">@threads</span> <span class="cf">for</span> x <span class="kw">in</span> x_range</span>
+<span id="cb25-18"><a href="#cb25-18" aria-hidden="true" tabindex="-1"></a>        tid <span class="op">=</span> <span class="fu">threadid</span>()</span>
+<span id="cb25-19"><a href="#cb25-19" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> y <span class="kw">in</span> y_range</span>
+<span id="cb25-20"><a href="#cb25-20" aria-hidden="true" tabindex="-1"></a>            <span class="fu">push!</span>(local_grid_points[tid], (x, y))</span>
+<span id="cb25-21"><a href="#cb25-21" aria-hidden="true" tabindex="-1"></a>            <span class="fu">abs</span>(<span class="fu">f</span>(x, y)) <span class="op">&lt;</span> tolerance <span class="op">&amp;&amp;</span> <span class="fu">push!</span>(local_solutions[tid], (x, y))</span>
+<span id="cb25-22"><a href="#cb25-22" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
+<span id="cb25-23"><a href="#cb25-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb25-24"><a href="#cb25-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-25"><a href="#cb25-25" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Combiner les résultats de tous les threads</span></span>
+<span id="cb25-26"><a href="#cb25-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> tid <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fu">nthreads</span>()</span>
+<span id="cb25-27"><a href="#cb25-27" aria-hidden="true" tabindex="-1"></a>        <span class="fu">append!</span>(solutions, local_solutions[tid])</span>
+<span id="cb25-28"><a href="#cb25-28" aria-hidden="true" tabindex="-1"></a>        <span class="fu">append!</span>(grid_points, local_grid_points[tid])</span>
+<span id="cb25-29"><a href="#cb25-29" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb25-30"><a href="#cb25-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-31"><a href="#cb25-31" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> solutions, grid_points</span>
+<span id="cb25-32"><a href="#cb25-32" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb25-33"><a href="#cb25-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-34"><a href="#cb25-34" aria-hidden="true" tabindex="-1"></a><span class="co"># Définir les paramètres pour les tests</span></span>
+<span id="cb25-35"><a href="#cb25-35" aria-hidden="true" tabindex="-1"></a>grid_size <span class="op">=</span> <span class="fl">10</span></span>
+<span id="cb25-36"><a href="#cb25-36" aria-hidden="true" tabindex="-1"></a>x_range <span class="op">=</span> y_range <span class="op">=</span> <span class="fu">range</span>(<span class="op">-</span><span class="fl">10</span>, <span class="fl">10</span>, length<span class="op">=</span>grid_size)</span>
+<span id="cb25-37"><a href="#cb25-37" aria-hidden="true" tabindex="-1"></a>tolerance <span class="op">=</span> <span class="fl">0.01</span></span>
+<span id="cb25-38"><a href="#cb25-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-39"><a href="#cb25-39" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">&quot;Number of threads: </span><span class="sc">$</span>(<span class="fu">nthreads</span>())<span class="st">&quot;</span>)</span>
+<span id="cb25-40"><a href="#cb25-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-41"><a href="#cb25-41" aria-hidden="true" tabindex="-1"></a><span class="co"># Test simple avec @time</span></span>
+<span id="cb25-42"><a href="#cb25-42" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">&quot;Performance test using @time (multithreaded):&quot;</span>)</span>
+<span id="cb25-43"><a href="#cb25-43" aria-hidden="true" tabindex="-1"></a><span class="pp">@time</span> <span class="fu">solve_equation_threaded</span>(x_range, y_range, tolerance);</span>
+<span id="cb25-44"><a href="#cb25-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-45"><a href="#cb25-45" aria-hidden="true" tabindex="-1"></a><span class="co"># Comparaison avec la version non threadée</span></span>
+<span id="cb25-46"><a href="#cb25-46" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">solve_equation</span>(x_range, y_range, tolerance)</span>
+<span id="cb25-47"><a href="#cb25-47" aria-hidden="true" tabindex="-1"></a>    solutions <span class="op">=</span> <span class="dt">Tuple</span>{<span class="dt">Float64</span>,<span class="dt">Float64</span>}[]</span>
+<span id="cb25-48"><a href="#cb25-48" aria-hidden="true" tabindex="-1"></a>    grid_points <span class="op">=</span> <span class="dt">Tuple</span>{<span class="dt">Float64</span>,<span class="dt">Float64</span>}[]</span>
+<span id="cb25-49"><a href="#cb25-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-50"><a href="#cb25-50" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> x <span class="kw">in</span> x_range, y <span class="kw">in</span> y_range</span>
+<span id="cb25-51"><a href="#cb25-51" aria-hidden="true" tabindex="-1"></a>        <span class="fu">push!</span>(grid_points, (x, y))</span>
+<span id="cb25-52"><a href="#cb25-52" aria-hidden="true" tabindex="-1"></a>        <span class="fu">abs</span>(<span class="fu">f</span>(x, y)) <span class="op">&lt;</span> tolerance <span class="op">&amp;&amp;</span> <span class="fu">push!</span>(solutions, (x, y))</span>
+<span id="cb25-53"><a href="#cb25-53" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb25-54"><a href="#cb25-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-55"><a href="#cb25-55" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> solutions, grid_points</span>
+<span id="cb25-56"><a href="#cb25-56" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb25-57"><a href="#cb25-57" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-58"><a href="#cb25-58" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">&quot;</span><span class="sc">\n</span><span class="st">Performance test using @time (single-threaded):&quot;</span>)</span>
+<span id="cb25-59"><a href="#cb25-59" aria-hidden="true" tabindex="-1"></a><span class="pp">@time</span> <span class="fu">solve_equation</span>(x_range, y_range, tolerance);</span></code></pre></div>
+<p>L'exécution de ce script donne ceci :</p>
+<pre><code>Number of threads: 1
+Performance test using @time (multithreaded):
+  1.638399 seconds (174.92 k allocations: 8.750 MiB, 5.06% compilation time)
+
+Performance test using @time (single-threaded):
+  1.556460 seconds (11.34 k allocations: 567.047 KiB, 1.02% compilation time)</code></pre>
+<p>Voyons l'influence de l'augmentation du nombre de threads. Pour cela
+nous allons exécuter notre script Julia depuis la console (et non plus
+depuis VS Code) en passant le paramètre <code>--threads</code></p>
+<p>Depuis la console exécuter le script précédent</p>
+<pre><code>&gt; julia --thread 2 .\solve_multithread_benchmark.jl
+Number of threads: 2
+Performance test using @time (multithreaded):
+  0.908704 seconds (205.63 k allocations: 10.362 MiB, 2.56% gc time, 18.53% compilation time)
+
+&gt; julia --thread 4 .\solve_multithread_benchmark.jl
+Number of threads: 4
+Performance test using @time (multithreaded):
+  0.591020 seconds (205.74 k allocations: 10.374 MiB, 2.91% gc time, 31.36% compilation time)
+
+&gt; julia --thread 8 .\solve_multithread_benchmark.jl
+Number of threads: 8
+Performance test using @time (multithreaded):
+  0.424595 seconds (205.94 k allocations: 10.401 MiB, 3.43% gc time, 56.25% compilation time)
+
+&gt; julia --thread 16 .\solve_multithread_benchmark.jl
+Number of threads: 16
+Performance test using @time (multithreaded):
+  0.275632 seconds (206.43 k allocations: 10.453 MiB, 4.45% gc time, 143.38% compilation time)</code></pre>
+<p>![[perf_test_multithreaded_time.png]] Notre implémentation montre une
+amélioration significative des performances avec l'augmentation du
+nombre de threads.</p>
+<p>Calculons l'accélération en latence pour les différents cas étudiés
+précédemment. Nous la noterons par la suite speedup. C'est une mesure
+qui quantifie l'amélioration de la vitesse d'exécution d'un programme
+lorsqu'il est parallélisé, par rapport à son exécution séquentielle.</p>
+<p>![[perf_test_multithreaded_speedup.png]]</p>
+<p>Le speedup augmente avec le nombre de threads, ce qui montre que
+notre code bénéficie effectivement du multithreading. Avec 16 threads,
+nous obtenons une accélération de 5,65x, ce qui est très bon.</p>
+<p>La nature de notre problème semble se prêter particulièrement bien à
+la parallélisation. Même à 16 threads, nous continuons à voir des
+améliorations, suggérant que notre problème pourrait potentiellement
+bénéficier d'encore plus de threads.</p>
+<p>Toutefois nous observons déjà que nous nous éloignons du speedup
+idéal</p>
+<p><span
+class="math display"><em>S</em><em>p</em><em>e</em><em>e</em><em>d</em><em>u</em><em>p</em>(<em>n</em>) = <em>n</em></span>
+avec n le nombre de threads.</p>
+<p>Pour évaluer l'efficacité, on peut calculer le ratio speedup / nombre
+de threads.</p>
+<p>![[perf_test_multithreaded_eff.png]]</p>
+<p>L'efficacité diminue avec l'augmentation du nombre de threads, ce qui
+est normal dû aux surcoûts de gestion des threads et aux parties non
+parallélisables du code.</p>
+<p>Nous pourrions envisager de tester avec un nombre encore plus élevé
+de threads pour identifier le point de saturation pour notre problème
+spécifique. Il serait intéressant d'analyser les parties de notre code
+qui pourraient limiter la scalabilité (par exemple, des sections non
+parallélisables ou des goulots d'étranglement en termes de
+synchronisation). Nous devrions considérer la nature de notre problème :
+s'agit-il d'un calcul intensif, d'opérations sur des données massives,
+ou d'un mélange des deux ? Cela pourrait expliquer la bonne scalabilité
+observée. Si ce n'est pas déjà fait, nous pourrions mesurer également
+l'utilisation des ressources (CPU, mémoire) pour chaque configuration de
+threads pour une analyse plus complète.</p>
+<p>Mais continuons sur l'analyse du temps d'exécution de notre script
+avec 32 threads.</p>
+<p>![[perf_test_multithreaded_time_32.png]]</p>
+<p>![[perf_test_multithreaded_speedup_32.png]]</p>
+<p>![[perf_test_multithreaded_eff_32.png]] De 1 à 16 threads, nous
+observons une amélioration constante du speedup, ce qui est positif.
+Cependant, à 32 threads, nous constatons une baisse inattendue des
+performances.</p>
+<p>Ceci s'explique probablement par l'architecture utilisée (je ne suis
+pas spécialiste). Le processeur est un CPU 13th Gen Intel(R) Core(TM)
+i7-13700K 3.40 GHz</p>
+<p>Le 13th Gen Intel(R) Core(TM) i7-13700K est un processeur de la série
+Raptor Lake d'Intel, connu pour son architecture hybride. Voici les
+détails sur ses cœurs :</p>
+<ol type="1">
+<li><p>Configuration des cœurs :</p>
+<ul>
+<li>8 cœurs de performance (P-cores)</li>
+<li>8 cœurs d'efficacité (E-cores)</li>
+<li>Total : 16 cœurs physiques</li>
+</ul></li>
+<li><p>Threads :</p>
+<ul>
+<li>Les P-cores supportent l'hyperthreading (2 threads par cœur)</li>
+<li>Les E-cores ne supportent pas l'hyperthreading (1 thread par
+cœur)</li>
+<li>Total : 24 threads logiques (8 P-cores x 2 threads) + (8 E-cores x 1
+thread) = 24 threads</li>
+</ul></li>
+<li><p>Caractéristiques supplémentaires :</p>
+<ul>
+<li>Fréquence de base : 3.4 GHz (comme mentionné)</li>
+<li>Fréquence Turbo maximale : Jusqu'à 5.4 GHz (peut varier selon les
+conditions)</li>
+<li>Cache : 30 MB Intel® Smart Cache</li>
+</ul></li>
+<li><p>Implications pour le multithreading :</p>
+<ul>
+<li>Les 24 threads logiques permettent un haut degré de
+parallélisme.</li>
+<li>Cependant, tous les threads ne sont pas égaux en termes de
+performance :
+<ul>
+<li>Les threads sur les P-cores sont généralement plus performants.</li>
+<li>Les threads sur les E-cores sont conçus pour l'efficacité
+énergétique et les tâches de fond.</li>
+</ul></li>
+</ul></li>
+<li><p>Considérations pour l'optimisation :</p>
+<ul>
+<li>Les applications sensibles à la latence devraient privilégier les
+P-cores.</li>
+<li>Les tâches parallèles moins intensives peuvent bénéficier des
+E-cores.</li>
+<li>L'ordonnanceur du système d'exploitation (comme Windows 11) est
+optimisé pour utiliser efficacement cette architecture hybride.</li>
+</ul></li>
+</ol>
+<p>En ce qui concerne nos résultats de multithreading :</p>
+<ul>
+<li>Le fait que nous ayons observé les meilleures performances avec 16
+threads correspond bien à la configuration de ce processeur.</li>
+<li>La baisse de performance à 32 threads s'explique par le fait que
+nous dépassons le nombre de threads logiques disponibles (24), ce qui
+entraîne une surcharge de gestion des threads et potentiellement une
+contention des ressources.</li>
+</ul>
+<p>Pour optimiser notre code sur ce processeur, nous devrions :</p>
+<ol type="1">
+<li>Viser une parallélisation optimale pour 24 threads.</li>
+<li>Considérer l'utilisation d'APIs avancées qui peuvent différencier
+les P-cores et les E-cores pour les tâches critiques en
+performance.</li>
+<li>Être conscients que les performances peuvent varier selon la charge
+du système et la gestion thermique du processeur.</li>
+</ol>
+<p>Cette architecture hybride offre un excellent potentiel de
+parallélisme, mais requiert une approche nuancée pour en tirer le
+meilleur parti, en particulier pour des applications de calcul intensif
+comme la nôtre.</p>
+<table>
+<thead>
+<tr>
+<th>threads</th>
+<th>time</th>
+<th>speedup</th>
+<th>speedup_idéal</th>
+<th>efficacité</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>1,55646</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+</tr>
+<tr>
+<td>2</td>
+<td>0,908704</td>
+<td>1,71283498</td>
+<td>2</td>
+<td>0,85641749</td>
+</tr>
+<tr>
+<td>4</td>
+<td>0,59102</td>
+<td>2,63351494</td>
+<td>4</td>
+<td>0,65837874</td>
+</tr>
+<tr>
+<td>8</td>
+<td>0,424595</td>
+<td>3,66575207</td>
+<td>8</td>
+<td>0,45821901</td>
+</tr>
+<tr>
+<td>16</td>
+<td>0,275632</td>
+<td>5,646877</td>
+<td>16</td>
+<td>0,35292981</td>
+</tr>
+<tr>
+<td>20</td>
+<td>0,283475</td>
+<td>5,49064291</td>
+<td>20</td>
+<td>0,27453215</td>
+</tr>
+<tr>
+<td>24</td>
+<td>0,240461</td>
+<td>6,4728168</td>
+<td>24</td>
+<td>0,2697007</td>
+</tr>
+<tr>
+<td>28</td>
+<td>0,348993</td>
+<td>4,45986023</td>
+<td>28</td>
+<td>0,15928072</td>
+</tr>
+<tr>
+<td>32</td>
+<td>0,387461</td>
+<td>4,01707527</td>
+<td>32</td>
+<td>0,1255336</td>
+</tr>
+</tbody>
+</table>
+<p>Tableau des mesures du temps de latence par nombre de threads</p>
+<p>![[perf_test_multithreaded_time_all.png]] On observe un minimum du
+temps d'exécution du script pour 24 threads. Ce qui semble en accord
+avec notre connaissance de l'architecture utilisée pour cet essai.</p>
+<hr />
+<h2
+id="exploration-des-lois-du-calcul-parallèle-et-distribué">Exploration
+des lois du calcul parallèle et distribué</h2>
+<p>Le domaine du calcul parallèle et distribué est riche en concepts
+théoriques qui guident notre compréhension et notre approche de la
+parallélisation des tâches. Les lois d'Amdahl et de Gustafson
+constituent le socle de cette théorie. La loi d'Amdahl met en lumière
+les limites du parallélisme en montrant que l'accélération est
+contrainte par la portion séquentielle du code. En contrepoint, la loi
+de Gustafson offre une perspective plus optimiste en considérant la
+capacité à traiter des problèmes de taille croissante. Au-delà de ces
+principes fondamentaux, d'autres lois peuvent enrichir notre
+compréhension : la loi de Little, issue de la théorie des files
+d'attente, ou encore le théorème CAP crucial pour les systèmes
+distribués. Cette diversité de concepts souligne la complexité et la
+richesse du domaine.</p>
+<p>Je vous invite vivement à explorer ces théories par vous-même. La
+lecture d'articles scientifiques, de livres spécialisés ou de ressources
+en ligne peut approfondir votre compréhension théorique. Mais n'oubliez
+pas que la véritable compréhension vient souvent de la pratique.
+Expérimentez, testez ces lois dans différents scénarios, observez
+comment elles se manifestent dans vos projets. Les forums de discussion,
+les communautés en ligne dédiées au calcul parallèle, ou même les
+discussions avec des LLM peuvent offrir des perspectives intéressantes.
+N'hésitez pas à remettre en question ces théories, à les tester dans des
+conditions variées. C'est par cette combinaison de théorie et de
+pratique, de lecture et d'expérimentation, que vous développerez une
+compréhension profonde et nuancée de ces concepts fondamentaux qui
+façonnent le monde du calcul parallèle et distribué.</p>
+<hr />
+<h2
+id="utilisation-des-capacités-de-calcul-de-la-carte-graphique">Utilisation
+des capacités de calcul de la carte graphique</h2>
+<p>L'utilisation des capacités de calcul des cartes graphiques (GPU)
+avec Julia offre des avantages significatifs en termes de performance
+pour certaines tâches de calcul intensif. Julia intègre plusieurs
+packages permettant d'exploiter efficacement les GPU, notamment CUDA.jl
+pour les cartes NVIDIA et Metal.jl pour les GPU Apple Silicon. Ces
+outils permettent aux développeurs de tirer parti de l'architecture
+massivement parallèle des GPU pour accélérer considérablement les
+opérations matricielles, le traitement d'images, les simulations
+numériques et les algorithmes d'apprentissage automatique.</p>
+<p>L'approche de Julia, combinant une syntaxe de haut niveau avec des
+performances proches du C, facilite l'écriture de code GPU efficace sans
+sacrifier la lisibilité ou la maintenabilité. De plus, l'écosystème
+Julia comprend des bibliothèques optimisées pour GPU comme CuArrays.jl,
+qui offrent des implémentations GPU transparentes pour de nombreuses
+opérations courantes, permettant aux utilisateurs de bénéficier de
+l'accélération GPU avec un minimum de modifications de leur code
+existant. Le site <a
+href="https://juliagpu.org/">https://juliagpu.org/</a> fournit des
+ressources détaillées, des exemples de code et des tutoriels pour aider
+les développeurs à intégrer efficacement le calcul GPU dans leurs
+projets Julia.</p>
+<h2 id="introduction-à-cudajl">Introduction à CUDA.jl</h2>
+<h2 id="exemple-de-code-et-comparaison-des-performances">Exemple de code
+et comparaison des performances</h2>
+<p>Voyons ci-dessous un exemple de code qui :</p>
+<ol type="1">
+<li>définit une fonction <code>calculer</code> qui somme les carrés des
+éléments d'un tableau.</li>
+<li>crée un grand tableau de nombres aléatoires et en fait une copie
+pour le GPU.</li>
+<li>exécute la fonction <code>calculer</code> sur le CPU et sur le GPU,
+en mesurant le temps d'exécution avec <code>@btime</code>.</li>
+<li>affiche les résultats et vérifie qu'ils sont identiques entre
+exécution sur CPU et sur GPU.</li>
+<li>libère la mémoire du GPU.</li>
+</ol>
+<div class="sourceCode" id="cb28"><pre
+class="sourceCode julia"><code class="sourceCode julia"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">CUDA</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">BenchmarkTools</span></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Définition de la fonction de calcul</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">calculer</span>(x)</span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="fu">sum</span>(x <span class="op">-&gt;</span> x<span class="op">^</span><span class="fl">2</span>, x)</span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Génération des données</span></span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> <span class="fl">10_000_000</span></span>
+<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a>x_cpu <span class="op">=</span> <span class="fu">rand</span>(<span class="dt">Float32</span>, n)</span>
+<span id="cb28-12"><a href="#cb28-12" aria-hidden="true" tabindex="-1"></a>x_gpu <span class="op">=</span> <span class="fu">CuArray</span>(x_cpu)</span>
+<span id="cb28-13"><a href="#cb28-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-14"><a href="#cb28-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Benchmark de la version CPU</span></span>
+<span id="cb28-15"><a href="#cb28-15" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="st">&quot;Version CPU : &quot;</span>)</span>
+<span id="cb28-16"><a href="#cb28-16" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">calculer</span>(<span class="op">$</span>x_cpu)</span>
+<span id="cb28-17"><a href="#cb28-17" aria-hidden="true" tabindex="-1"></a>result_cpu <span class="op">=</span> <span class="fu">calculer</span>(x_cpu)</span>
+<span id="cb28-18"><a href="#cb28-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-19"><a href="#cb28-19" aria-hidden="true" tabindex="-1"></a><span class="co"># Benchmark de la version GPU</span></span>
+<span id="cb28-20"><a href="#cb28-20" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="st">&quot;Version GPU : &quot;</span>)</span>
+<span id="cb28-21"><a href="#cb28-21" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">calculer</span>(<span class="op">$</span>x_gpu)</span>
+<span id="cb28-22"><a href="#cb28-22" aria-hidden="true" tabindex="-1"></a>result_gpu <span class="op">=</span> <span class="fu">calculer</span>(x_gpu)</span>
+<span id="cb28-23"><a href="#cb28-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-24"><a href="#cb28-24" aria-hidden="true" tabindex="-1"></a><span class="co"># Affichage des résultats</span></span>
+<span id="cb28-25"><a href="#cb28-25" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">&quot;Résultat CPU : &quot;</span>, result_cpu)</span>
+<span id="cb28-26"><a href="#cb28-26" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">&quot;Résultat GPU : &quot;</span>, result_gpu)</span>
+<span id="cb28-27"><a href="#cb28-27" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">&quot;Les résultats correspondent : &quot;</span>, <span class="fu">isapprox</span>(result_cpu, result_gpu))</span>
+<span id="cb28-28"><a href="#cb28-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-29"><a href="#cb28-29" aria-hidden="true" tabindex="-1"></a><span class="co"># Nettoyage de la mémoire GPU</span></span>
+<span id="cb28-30"><a href="#cb28-30" aria-hidden="true" tabindex="-1"></a>CUDA.<span class="fu">reclaim</span>()</span></code></pre></div>
+<p>L'intérêt principal de ce programme est de comparer les performances
+entre CPU et GPU pour cette opération spécifique, en utilisant
+exactement la même fonction pour les deux. Cela met en évidence la
+capacité de Julia à utiliser le même code pour différents types de
+matériel, adaptant automatiquement l'exécution selon que les données
+sont sur CPU ou GPU.</p>
+<p>A l'exécution du script, nous obtenons les résultats suivants</p>
+<pre><code>Version CPU :   1.084 ms (0 allocations: 0 bytes)
+Version GPU :   194.900 μs (78 allocations: 1.95 KiB)
+Résultat CPU : 3.3334825e6
+Résultat GPU : 3.3334828e6</code></pre>
+<p>Le calcul sur GPU est environ 5,56 fois plus rapide que sur CPU pour
+cette opération spécifique. C'est une amélioration significative de la
+performance. Le CPU n'a pas besoin d'allocations supplémentaires, tandis
+que le GPU en fait quelques-unes. Cela est probablement dû à la gestion
+interne des opérations CUDA et au transfert des résultats.</p>
+<p>L'objet du présent article n'est pas d'explorer en profondeur cet
+aspect.</p>
+<hr />
+<h2 id="principe-du-calcul-distribué-avec-julia">Principe du calcul
+distribué avec Julia</h2>
+<h2
+id="distinction-entre-programmation-parallèle-et-programmation-distribuée">Distinction
+entre programmation parallèle et programmation distribuée</h2>
+<p>Il est crucial de distinguer la programmation parallèle de la
+programmation distribuée, bien que Julia offre des outils pour les deux
+approches. La programmation parallèle implique généralement
+l'utilisation de multiples cœurs ou threads sur une seule machine,
+partageant la même mémoire. En Julia, cela se fait principalement, comme
+vu précédemment, via le module <code>Threads</code>, avec des
+constructions comme <code>Threads.@threads</code>. Cette approche est
+efficace pour exploiter pleinement les capacités d'un seul ordinateur
+multi-cœurs.</p>
+<p>En revanche, la programmation distribuée, réalisée via le module
+<code>Distributed</code>, implique l'utilisation de plusieurs processus
+qui peuvent s'exécuter sur des machines distinctes, chacun avec sa
+propre mémoire. Ces processus communiquent par passage de messages.
+Cette approche est nécessaire pour les calculs à grande échelle qui
+dépassent les capacités d'une seule machine.</p>
+<p>Julia permet une transition relativement fluide entre ces deux
+paradigmes. Par exemple, une boucle parallélisée avec
+<code>Threads.@threads</code> sur une machine peut souvent être adaptée
+pour utiliser <code>@distributed</code> sur un cluster avec des
+changements minimes. Cependant, la programmation distribuée nécessite
+généralement une réflexion supplémentaire sur la gestion des données et
+la communication entre les processus.</p>
+<p>Dans le contexte de notre mini cluster, nous nous concentrerons
+principalement sur la programmation distribuée, qui nous permettra
+d'exploiter pleinement les ressources de plusieurs machines. Néanmoins,
+comprendre la programmation parallèle reste important, car elle peut
+être combinée avec des approches distribuées pour optimiser les
+performances sur chaque nœud du cluster.</p>
+<h2
+id="hpc-high-performance-computing-ou-htc-high-throughput-computing-">HPC
+(High-Performance Computing) ou HTC (High-Throughput Computing) ?</h2>
+<p>Le calcul haute performance (HPC) et le calcul à haut débit (HTC)
+sont deux paradigmes distincts dans le domaine du calcul avancé, chacun
+répondant à des besoins spécifiques en matière de traitement de données
+et de résolution de problèmes complexes.</p>
+<p><strong>Calcul haute performance (HPC)</strong></p>
+<p>Le HPC se concentre sur la résolution de problèmes complexes et
+étroitement couplés dans le temps le plus court possible. Il est
+caractérisé par :</p>
+<ol type="1">
+<li><strong>Architecture</strong> : Utilisation de supercalculateurs ou
+de clusters de calcul avec des nœuds fortement interconnectés.</li>
+<li><strong>Communication</strong> : Nécessite généralement une
+communication fréquente et rapide entre les nœuds de calcul.</li>
+<li><strong>Applications typiques</strong> : Simulations climatiques,
+dynamique des fluides, modélisation moléculaire, etc.</li>
+<li><strong>Parallélisme</strong> : Exploite souvent le parallélisme à
+grain fin, où un problème est divisé en de nombreuses petites tâches
+interdépendantes.</li>
+<li><strong>Latence</strong> : Très sensible à la latence du réseau et à
+la vitesse de communication entre les nœuds.</li>
+</ol>
+<p><strong>Calcul à haut débit (HTC)</strong></p>
+<p>Le HTC, en revanche, se concentre sur l'exécution efficace d'un grand
+nombre de tâches indépendantes ou faiblement couplées. Ses
+caractéristiques principales sont :</p>
+<ol type="1">
+<li><strong>Architecture</strong> : Peut utiliser des ressources plus
+hétérogènes, y compris des grilles de calcul ou des clouds.</li>
+<li><strong>Communication</strong> : Les tâches nécessitent généralement
+peu ou pas de communication entre elles.</li>
+<li><strong>Applications typiques</strong> : Analyse de données à grande
+échelle, simulations paramétriques, rendus graphiques, etc.</li>
+<li><strong>Parallélisme</strong> : Exploite le parallélisme à gros
+grain, où de grandes tâches indépendantes sont exécutées
+simultanément.</li>
+<li><strong>Tolérance aux pannes</strong> : Généralement plus robuste
+face aux pannes de nœuds individuels.</li>
+</ol>
+<p><strong>Comparaison et choix</strong></p>
+<p>Le choix entre HPC et HTC dépend de la nature du problème à résoudre
+:</p>
+<ul>
+<li>Le HPC est préférable pour des problèmes qui nécessitent une forte
+interaction entre les différentes parties du calcul et où la performance
+globale dépend de la rapidité de chaque étape.</li>
+<li>Le HTC est plus adapté pour des problèmes qui peuvent être
+décomposés en tâches indépendantes, où l'objectif est de maximiser le
+nombre total de tâches accomplies sur une période donnée.</li>
+</ul>
+<p>Dans le contexte de notre mini cluster et de l'exemple de l'équation
+du cercle, nous nous situons davantage dans le paradigme HTC. Notre
+problème peut être facilement divisé en tâches indépendantes (évaluation
+de différentes régions de l'espace), ce qui correspond bien à l'approche
+HTC. Cependant, Julia, avec ses capacités de calcul distribué, peut être
+utilisée efficacement dans les deux contextes, HPC et HTC, en fonction
+de la configuration du cluster et de la nature du problème traité.</p>
+<h2 id="fonctionnement-du-calcul-distribué-en-julia">Fonctionnement du
+calcul distribué en Julia</h2>
+<h3 id="principe">Principe</h3>
+<p>Le calcul distribué en Julia repose sur le concept de parallélisme à
+mémoire distribuée, où plusieurs processus Julia indépendants
+collaborent pour résoudre un problème commun. Julia facilite cette
+approche grâce à son module <code>Distributed</code> intégré, qui offre
+des primitives puissantes pour la programmation parallèle et
+distribuée.</p>
+<p>Au cœur du calcul distribué avec Julia se trouve la notion de
+"workers" (travailleurs). Chaque worker est un processus Julia distinct
+qui peut s'exécuter sur la même machine ou sur des machines différentes
+au sein d'un réseau. Ces workers peuvent communiquer entre eux et avec
+le processus principal, appelé "master", pour échanger des données et
+des tâches. L'ajout de workers se fait simplement avec la fonction
+<code>addprocs()</code>, qui peut prendre en argument des adresses IP
+pour distribuer le calcul sur plusieurs machines.</p>
+<p>Julia propose plusieurs mécanismes pour exploiter ces workers. La
+macro <code>@distributed</code> permet de paralléliser facilement des
+boucles, répartissant automatiquement les itérations entre les workers
+disponibles. Pour des tâches plus complexes, la fonction
+<code>remotecall()</code> permet d'exécuter des fonctions spécifiques
+sur des workers choisis, tandis que <code>pmap()</code> offre une
+interface de haut niveau pour appliquer une fonction à une collection de
+données de manière distribuée. Ces outils, combinés à la capacité de
+Julia à sérialiser et désérialiser efficacement les données et le code,
+permettent de créer des applications distribuées performantes avec
+relativement peu d'effort de programmation.</p>
+<p>Un aspect crucial du calcul distribué en Julia est la gestion de
+l'état et de la synchronisation entre les workers. Julia facilite cela
+grâce à des constructions comme <code>@everywhere</code>, qui permet de
+définir des fonctions et des variables sur tous les workers
+simultanément, et les "Future" et "RemoteChannel", qui offrent des
+mécanismes pour la communication asynchrone et la synchronisation entre
+les processus. Ces fonctionnalités permettent aux développeurs de
+concevoir des algorithmes distribués complexes tout en maintenant un
+code clair et expressif, fidèle à la philosophie de Julia qui vise à
+combiner la simplicité de la syntaxe avec des performances de haut
+niveau.</p>
+<p>La documentation officielle de Julia permet d'en savoir davantage sur
+le sujet <a
+href="https://docs.julialang.org/en/v1/manual/distributed-computing/">https://docs.julialang.org/en/v1/manual/distributed-computing/</a></p>
+<h3 id="exemple-de-code-julia-distribué">Exemple de code Julia
+distribué</h3>
+<p>Reprenons le cas du calcul des solutions de (x - 1)² + (y - 2)² - 1 =
+0</p>
+<div class="sourceCode" id="cb30"><pre
+class="sourceCode julia"><code class="sourceCode julia"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Distributed</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Ajouter des processus workers (ajustez selon vos besoins)</span></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a><span class="fu">addprocs</span>(<span class="fl">3</span>)</span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a><span class="pp">@everywhere</span> <span class="kw">function</span> <span class="fu">f</span>(x, y)</span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (x <span class="op">-</span> <span class="fl">1</span>)<span class="op">^</span><span class="fl">2</span> <span class="op">+</span> (y <span class="op">-</span> <span class="fl">2</span>)<span class="op">^</span><span class="fl">2</span> <span class="op">-</span> <span class="fl">1</span></span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a><span class="pp">@everywhere</span> <span class="kw">function</span> <span class="fu">solve</span>(x_range, y_range, tolerance<span class="op">=</span><span class="fl">1e-6</span>)</span>
+<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a>    points <span class="op">=</span> <span class="dt">Tuple</span>{<span class="dt">Float64</span>, <span class="dt">Float64</span>}[]</span>
+<span id="cb30-12"><a href="#cb30-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> x <span class="kw">in</span> x_range, y <span class="kw">in</span> y_range</span>
+<span id="cb30-13"><a href="#cb30-13" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="fu">abs</span>(<span class="fu">circle_equation</span>(x, y)) <span class="op">&lt;</span> tolerance</span>
+<span id="cb30-14"><a href="#cb30-14" aria-hidden="true" tabindex="-1"></a>            <span class="fu">push!</span>(points, (x, y))</span>
+<span id="cb30-15"><a href="#cb30-15" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
+<span id="cb30-16"><a href="#cb30-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb30-17"><a href="#cb30-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> points</span>
+<span id="cb30-18"><a href="#cb30-18" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb30-19"><a href="#cb30-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-20"><a href="#cb30-20" aria-hidden="true" tabindex="-1"></a><span class="co"># Définir l&#39;espace de recherche</span></span>
+<span id="cb30-21"><a href="#cb30-21" aria-hidden="true" tabindex="-1"></a>x_range <span class="op">=</span> <span class="fu">range</span>(<span class="op">-</span><span class="fl">10</span>, <span class="fl">10</span>, length<span class="op">=</span><span class="fl">1000</span>)</span>
+<span id="cb30-22"><a href="#cb30-22" aria-hidden="true" tabindex="-1"></a>y_range <span class="op">=</span> <span class="fu">range</span>(<span class="op">-</span><span class="fl">10</span>, <span class="fl">10</span>, length<span class="op">=</span><span class="fl">1000</span>)</span>
+<span id="cb30-23"><a href="#cb30-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-24"><a href="#cb30-24" aria-hidden="true" tabindex="-1"></a><span class="co"># Diviser l&#39;espace de recherche pour la distribution</span></span>
+<span id="cb30-25"><a href="#cb30-25" aria-hidden="true" tabindex="-1"></a>chunks <span class="op">=</span> <span class="bu">Iterators</span>.<span class="fu">partition</span>(x_range, <span class="fu">length</span>(x_range) <span class="op">÷</span> <span class="fu">nworkers</span>())</span>
+<span id="cb30-26"><a href="#cb30-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-27"><a href="#cb30-27" aria-hidden="true" tabindex="-1"></a><span class="co"># Effectuer le calcul distribué</span></span>
+<span id="cb30-28"><a href="#cb30-28" aria-hidden="true" tabindex="-1"></a><span class="pp">@time</span> <span class="cf">begin</span></span>
+<span id="cb30-29"><a href="#cb30-29" aria-hidden="true" tabindex="-1"></a>    results <span class="op">=</span> <span class="pp">@distributed</span> (vcat) <span class="cf">for</span> chunk <span class="kw">in</span> chunks</span>
+<span id="cb30-30"><a href="#cb30-30" aria-hidden="true" tabindex="-1"></a>        <span class="fu">find_points_on_circle</span>(chunk, y_range)</span>
+<span id="cb30-31"><a href="#cb30-31" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb30-32"><a href="#cb30-32" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb30-33"><a href="#cb30-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-34"><a href="#cb30-34" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">&quot;Nombre de points trouvés : &quot;</span>, <span class="fu">length</span>(results))</span>
+<span id="cb30-35"><a href="#cb30-35" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">&quot;Quelques points trouvés : &quot;</span>, results[<span class="fl">1</span><span class="op">:</span><span class="fl">5</span>])</span></code></pre></div>
+<h3 id="analyse-de-ce-code">Analyse de ce code</h3>
+<p>Cet exemple illustre plusieurs concepts clés du calcul distribué
+appliqués à un problème mathématique concret : la recherche de points
+satisfaisant l'équation d'un cercle dans un espace bidimensionnel.</p>
+<ol type="1">
+<li><p><strong>Principe du calcul distribué</strong> Le calcul distribué
+consiste à diviser un problème complexe en sous-tâches qui peuvent être
+traitées simultanément par plusieurs unités de calcul. Dans notre cas,
+nous divisons l'espace de recherche en plusieurs parties, chacune
+traitée par un processus différent.</p></li>
+<li><p><strong>Adaptation du problème au calcul distribué</strong>
+L'équation du cercle (x - 1)² + (y - 2)² = 1 se prête bien à la
+parallélisation car chaque point (x, y) peut être évalué indépendamment
+des autres. Cela permet une distribution efficace du travail sans
+nécessiter de communication complexe entre les processus.</p></li>
+<li><p><strong>Utilisation des ressources du cluster</strong> Bien que
+l'exemple utilise des processus locaux (<code>addprocs(3)</code>), dans
+un véritable environnement de cluster, nous pourrions spécifier les
+adresses IP des différentes machines. Cela permettrait d'exploiter
+pleinement les ressources de calcul distribuées sur plusieurs
+ordinateurs.</p></li>
+<li><p><strong>Équilibrage de charge</strong> La division de l'espace de
+recherche en "chunks" égaux (<code>Iterators.partition</code>) assure
+une répartition équilibrée du travail entre les workers. Dans un cluster
+hétérogène, on pourrait envisager des stratégies plus sophistiquées pour
+adapter la charge à la puissance de chaque nœud.</p></li>
+<li><p><strong>Scalabilité</strong> Ce code est facilement scalable. En
+augmentant simplement le nombre de workers (en modifiant
+<code>addprocs(3)</code> ou en ajoutant plus de machines au cluster),
+nous pouvons traiter des espaces de recherche plus grands ou obtenir des
+résultats plus rapidement.</p></li>
+<li><p><strong>Gestion de la mémoire distribuée</strong> Chaque worker
+opère sur sa propre portion de données, ce qui permet de gérer
+efficacement la mémoire, surtout pour de très grands espaces de
+recherche qui ne tiendraient pas dans la mémoire d'une seule
+machine.</p></li>
+<li><p><strong>Agrégation des résultats</strong> L'utilisation de
+<code>@distributed (vcat)</code> montre comment les résultats partiels
+de chaque worker sont combinés en un résultat final unique.</p></li>
+<li><p><strong>Flexibilité et adaptabilité</strong> Ce modèle de calcul
+peut être facilement adapté à d'autres problèmes similaires. Par
+exemple, on pourrait modifier la fonction <code>circle_equation</code>
+pour résoudre d'autres équations ou problèmes d'optimisation.</p></li>
+<li><p><strong>Performance et mesure</strong> L'utilisation de
+<code>@time</code> permet de mesurer les performances, ce qui est
+crucial pour évaluer l'efficacité de la distribution et identifier les
+goulots d'étranglement potentiels.</p></li>
+</ol>
+<p>Dans le contexte de notre mini cluster, cet exemple sert de base pour
+comprendre comment structurer des problèmes plus complexes. Il démontre
+comment Julia peut être utilisé pour exploiter efficacement les
+ressources distribuées, que ce soit sur plusieurs cœurs d'une même
+machine ou sur plusieurs machines d'un cluster.</p>
+<p>La simplicité relative de cet exemple ne doit pas masquer son
+potentiel : des principes similaires peuvent être appliqués à des
+calculs scientifiques beaucoup plus complexes, des simulations, ou des
+analyses de données massives, où la distribution du calcul devient non
+seulement avantageuse mais souvent nécessaire.</p>
+<hr />
+<h1
+id="mise-en-place-dun-environnement-de-calcul-distribué-dans-un-homelab">Mise
+en place d'un environnement de calcul distribué dans un homelab</h1>
+<hr />
+<h2 id="présentation-du-homelab">Présentation du homelab</h2>
+<h2 id="définition-dun-homelab">Définition d'un homelab</h2>
+<p>Un homelab est un environnement informatique personnel, généralement
+installé à domicile, qui sert de laboratoire pour l'expérimentation,
+l'apprentissage et le développement de compétences technologiques. Ce
+concept englobe une large gamme de configurations, allant d'un simple
+ordinateur dédié à des systèmes plus complexes comprenant plusieurs
+serveurs, des équipements réseau avancés, et des dispositifs de
+stockage. L'objectif principal d'un homelab est de fournir un espace sûr
+et contrôlé pour explorer diverses technologies, tester de nouveaux
+logiciels, simuler des environnements d'entreprise, et acquérir une
+expérience pratique sans les risques associés à un environnement de
+production. Les homelabs sont particulièrement populaires parmi les
+professionnels de l'IT, les développeurs, les passionnés de technologie
+et les étudiants en informatique. Ils permettent d'expérimenter avec des
+technologies telles que la virtualisation, le cloud computing, les
+conteneurs, l'automatisation, la sécurité réseau, et bien d'autres
+domaines.</p>
+<p>Un homelab peut servir à divers usages : héberger des services
+personnels (comme un serveur média ou un cloud privé), simuler des
+scénarios de réseau complexes, apprendre de nouveaux langages de
+programmation ou des frameworks, ou même contribuer à des projets open
+source. L'un des principaux avantages d'un homelab est la liberté qu'il
+offre pour apprendre par l'erreur, tester des configurations risquées,
+et développer une compréhension approfondie des systèmes informatiques.
+De plus, il permet de développer des compétences pratiques très
+recherchées sur le marché du travail. Bien que la mise en place d'un
+homelab puisse représenter un investissement initial en termes de
+matériel et de temps, elle offre un retour sur investissement
+considérable en termes de connaissances acquises et d'expérience
+pratique.</p>
+<p>À l'ère du cloud computing, certains choisissent même de créer des
+"homelabs virtuels" en utilisant des services cloud, combinant ainsi les
+avantages du homelab traditionnel avec la flexibilité et l'évolutivité
+du cloud. Que ce soit pour la curiosité personnelle, le développement
+professionnel, ou comme tremplin vers de nouveaux horizons
+technologiques, un homelab représente un outil puissant d'apprentissage
+et d'innovation dans le monde de l'informatique moderne.</p>
+<h2 id="matériel-nécessaire">Matériel nécessaire</h2>
+<p>La construction d'un homelab peut s'adapter à différents budgets et
+objectifs, avec une large gamme de matériel disponible. Pour un homelab
+de base, des ordinateurs personnels recyclés ou des mini-PC comme les
+Intel NUC ou les Raspberry Pi peuvent suffire, offrant un excellent
+rapport coût-efficacité pour des projets légers ou d'apprentissage.</p>
+<p>Pour des configurations plus robustes, d'anciens serveurs
+d'entreprise, tels que les Dell PowerEdge, HP ProLiant ou Lenovo
+ThinkServer, sont populaires en raison de leur fiabilité et de leur
+disponibilité sur le marché de l'occasion. Ces serveurs offrent souvent
+de nombreux cœurs CPU, une grande capacité de RAM et des options
+d'extension. Les passionnés optent parfois pour des serveurs en rack,
+nécessitant alors un rack et une attention particulière à la gestion du
+bruit et de la chaleur.</p>
+<p>Côté stockage, les NAS (Network Attached Storage) comme ceux de
+Synology ou QNAP sont prisés pour leur facilité d'utilisation et leurs
+fonctionnalités avancées. Pour le réseau, des switchs manageables, comme
+ceux de la gamme Cisco Small Business ou Ubiquiti UniFi, permettent
+d'explorer des configurations réseau complexes. Les routeurs/pare-feu
+dédiés, tels que pfSense ou OPNsense, installés sur du matériel dédié ou
+virtualisé, ajoutent une couche de sécurité et de contrôle.</p>
+<p>Pour l'expérimentation avec l'Internet des Objets (IoT), des
+dispositifs comme les ESP32 ou les Arduino peuvent compléter
+l'installation. L'aspect énergie ne doit pas être négligé : un onduleur
+(UPS) protège le matériel et permet des arrêts propres en cas de coupure
+de courant.</p>
+<p>Enfin, la virtualisation étant centrale dans de nombreux homelabs, le
+choix de matériel supportant les technologies de virtualisation (comme
+Intel VT-x ou AMD-V) est crucial.</p>
+<p>Le matériel idéal pour un homelab dépend des objectifs spécifiques,
+du budget et de l'espace disponible, mais la flexibilité et la capacité
+d'évolution sont des critères importants à considérer lors de la
+sélection.</p>
+<h2 id="mon-homelab">Mon homelab</h2>
+<p>Mon homelab présente une configuration polyvalente, combinant du
+matériel moderne avec des équipements plus anciens mais toujours
+performants. Au cœur du système se trouvent deux mini PC : le GEEKOM AX8
+Pro, doté d'un puissant processeur AMD Ryzen 9 8945HS, offrant une
+capacité de calcul impressionnante pour les tâches intensives et la
+virtualisation, et le Dell OptiPlex Micro 7010 MFF, plus ancien mais
+fiable, idéal pour des services stables ou des environnements de test.
+Le stockage en réseau est géré par un NAS Synology RS814+. Bien que ce
+modèle ne soit plus de dernière génération, il reste parfaitement
+capable de gérer efficacement le stockage et le partage de fichiers,
+ainsi que d'héberger divers services comme la surveillance, la
+sauvegarde, ou même des conteneurs légers. La connectivité réseau est
+assurée par un switch TP-Link TL-SG2424, un switch manageable de 24
+ports qui, malgré son âge, offre encore des fonctionnalités avancées
+suffisantes pour explorer des configurations réseau complexes, des VLAN,
+ou des optimisations de trafic. L'ensemble est sécurisé et géré
+électriquement par un PDU (Power Distribution Unit) APC AP7921, qui
+permet non seulement une distribution efficace de l'alimentation, mais
+aussi un contrôle à distance de l'énergie, essentiel pour la gestion et
+la maintenance du homelab.</p>
+<p>Cette configuration illustre parfaitement comment un homelab peut
+évoluer au fil du temps, intégrant de nouveaux équipements performants
+tout en continuant à tirer parti de matériel plus ancien mais toujours
+fonctionnel. Elle offre un excellent environnement pour explorer une
+large gamme de technologies et de scénarios, de la virtualisation
+avancée sur les mini PC modernes à la gestion de réseau et de stockage
+sur des équipements éprouvés. Ce mélange de générations technologiques
+permet également d'expérimenter avec l'intégration de systèmes
+hétérogènes, une compétence précieuse dans de nombreux environnements
+professionnels. De plus, l'utilisation de matériel plus ancien démontre
+une approche pragmatique et durable, maximisant la valeur et la durée de
+vie des équipements informatiques.</p>
+<hr />
+<h2 id="mise-en-place-de-votre-homelab">Mise en place de votre
+homelab</h2>
+<h2 id="choix-du-matériel-pour-un-homelab">Choix du matériel pour un
+homelab</h2>
+<ol type="1">
+<li><p><strong>Définir vos objectifs</strong></p>
+<ul>
+<li>Listez les projets que vous souhaitez réaliser (ex: virtualisation,
+stockage en réseau, expérimentations réseau).</li>
+<li>Identifiez vos besoins en termes de puissance de calcul, de stockage
+et de capacités réseau.</li>
+</ul></li>
+<li><p><strong>Établir un budget</strong></p>
+<ul>
+<li>Déterminez combien vous êtes prêt à investir initialement.</li>
+<li>Prévoyez une marge pour d'éventuelles extensions futures.</li>
+</ul></li>
+<li><p><strong>Choisir l'unité de calcul principale</strong> Options
+:</p>
+<ul>
+<li>Mini PC : compact, économe en énergie, suffisant pour de nombreux
+projets.</li>
+<li>Serveur d'occasion : plus puissant, extensible, mais plus encombrant
+et énergivore.</li>
+<li>PC de bureau recyclé : bon compromis, facilement évolutif. Critères
+de choix :</li>
+<li>Processeur : nombre de cœurs, fréquence, support de la
+virtualisation.</li>
+<li>RAM : au moins 16 Go, extensible si possible.</li>
+<li>Stockage : SSD pour le système, disques durs pour les données.</li>
+<li>Contraintes : en fonction de vos besoins, il sera nécessaire
+d'envisager l'achat d'un unité de calcul plus ou moins puissante</li>
+</ul></li>
+<li><p><strong>Sélectionner le stockage en réseau</strong> Options :</p>
+<ul>
+<li>NAS préfabriqué : facile à utiliser, fonctionnalités intégrées.</li>
+<li>Serveur de stockage DIY : plus flexible, potentiellement moins cher.
+Critères :</li>
+<li>Capacité de stockage.</li>
+<li>Possibilités de redondance (RAID).</li>
+<li>Performances réseau (1 Gbps minimum, 10 Gbps si possible).</li>
+<li>Contraintes : selon la taille de vos VM ou conteneur à
+sauvegarder</li>
+</ul></li>
+<li><p><strong>Choisir l'équipement réseau</strong></p>
+<ul>
+<li>Switch Ethernet (de préférence manageable) : pour apprendre la
+gestion de réseau.</li>
+<li>Routeur/Firewall : considérez des options comme pfSense ou OPNsense
+sur du matériel dédié. Critères :</li>
+<li>Nombre de ports.</li>
+<li>Vitesse des ports (1 Gbps minimum, certains 10 Gbps si
+possible).</li>
+<li>Fonctionnalités de gestion (VLAN, QoS, etc.).</li>
+</ul></li>
+<li><p><strong>Gestion de l'alimentation</strong></p>
+<ul>
+<li>PDU : pour une gestion efficace de l'alimentation.</li>
+<li>Onduleur (UPS) : pour la protection contre les coupures de
+courant.</li>
+</ul></li>
+<li><p><strong>Considérer le matériel supplémentaire</strong></p>
+<ul>
+<li>Câbles réseau de qualité (Cat6 ou supérieur).</li>
+<li>Outils de surveillance (sondes de température, moniteurs de
+consommation).</li>
+<li>Matériel de test (testeurs de câbles, injecteurs PoE).</li>
+</ul></li>
+<li><p><strong>Penser à l'évolutivité</strong></p>
+<ul>
+<li>Choisissez du matériel qui peut être mis à niveau ou étendu.</li>
+<li>Prévoyez de l'espace pour des ajouts futurs.</li>
+</ul></li>
+<li><p><strong>Vérifier la compatibilité</strong></p>
+<ul>
+<li>Assurez-vous que tous les composants sont compatibles entre
+eux.</li>
+<li>Vérifiez la compatibilité avec les logiciels que vous prévoyez
+d'utiliser (ex: hyperviseurs).</li>
+</ul></li>
+<li><p><strong>Considérer l'efficacité énergétique</strong></p>
+<ul>
+<li>Optez pour du matériel économe en énergie pour réduire les coûts de
+fonctionnement.</li>
+<li>Vérifiez les cotes de consommation électrique de chaque
+appareil.</li>
+<li>Mesurez votre consommation électrique (afin de ne pas avoir de
+mauvaises surprises !) via le compteur connecté de votre installation ou
+via des prises wattmètres dédiées</li>
+</ul></li>
+<li><p><strong>Rechercher des avis et des retours
+d'expérience</strong></p>
+<ul>
+<li>Lisez des critiques en ligne et des discussions sur les forums.</li>
+<li>Demandez conseil à la communauté homelab (Reddit, forums
+spécialisés).</li>
+</ul></li>
+<li><p><strong>Où acheter</strong></p>
+<ul>
+<li>Magasins d'informatique locaux.</li>
+<li>Sites de vente en ligne spécialisés.</li>
+<li>Marchés d'occasion pour du matériel d'entreprise (eBay, sites
+spécialisés).</li>
+<li>Considérez le matériel reconditionné pour des options plus
+économiques.</li>
+</ul></li>
+</ol>
+<p>En suivant ces étapes, vous pourrez choisir un matériel adapté à vos
+besoins spécifiques pour votre homelab, tout en restant dans votre
+budget et en gardant à l'esprit les possibilités d'évolution future.</p>
+<h2
+id="installation-physique-et-mise-en-réseau-dun-homelab">Installation
+physique et mise en réseau d'un homelab</h2>
+<ol type="1">
+<li><p><strong>Préparation de l'espace</strong></p>
+<ul>
+<li>Choisissez un endroit bien ventilé, idéalement avec un accès facile
+à l'arrière des équipements.</li>
+<li>Assurez-vous d'avoir suffisamment de prises électriques à
+proximité.</li>
+</ul></li>
+<li><p><strong>Installation du rack ou de l'étagère</strong></p>
+<ul>
+<li>Si vous avez un petit rack, installez-le. Sinon, une étagère solide
+fera l'affaire.</li>
+<li>Placez-le de manière à pouvoir accéder facilement à tous les
+équipements.</li>
+</ul></li>
+<li><p><strong>Mise en place du PDU</strong></p>
+<ul>
+<li>Montez le PDU ou au moins votre distribution d'alimentation dans le
+rack ou fixez-le solidement à l'arrière de l'étagère.</li>
+<li>Branchez-le sur une prise électrique, idéalement sur un circuit
+dédié si possible.</li>
+</ul></li>
+<li><p><strong>Installation des mini PC</strong></p>
+<ul>
+<li>Placez votre ou vos minis PC / serveurs sur l'étagère ou dans le
+rack.</li>
+<li>Assurez-vous qu'ils ont suffisamment d'espace pour la
+ventilation.</li>
+<li>Connectez-les au PDU pour l'alimentation.</li>
+</ul></li>
+<li><p><strong>Mise en place du NAS</strong></p>
+<ul>
+<li>Si vous avez un rack et que le NAS est rackable, montez-le dedans.
+Sinon, placez-le sur l'étagère.</li>
+<li>Connectez-le également au PDU.</li>
+</ul></li>
+<li><p><strong>Installation du switch Ethernet</strong></p>
+<ul>
+<li>Montez votre switch dans le rack ou placez-le sur l'étagère.</li>
+<li>Branchez-le sur le PDU.</li>
+</ul></li>
+<li><p><strong>Câblage réseau</strong></p>
+<ul>
+<li>Utilisez des câbles Ethernet de catégorie 6 (ou mieux) pour toutes
+les connexions.</li>
+<li>Connectez chaque appareil (mini PCs, NAS) à un port du switch
+TP-Link.</li>
+<li>Si possible, utilisez des câbles de couleurs différentes pour
+différencier les types de connexions (par exemple, bleu pour les
+données, jaune pour la gestion).</li>
+</ul></li>
+<li><p><strong>Configuration de base du réseau</strong></p>
+<ul>
+<li>Allumez le switch et configurez son interface de gestion si
+nécessaire.</li>
+<li>Attribuez des adresses IP statiques à chaque appareil ou configurez
+des réservations DHCP.</li>
+</ul></li>
+<li><p><strong>Configuration du routeur ou box internet</strong></p>
+<ul>
+<li>Connectez votre routeur Internet au switch.</li>
+<li>Configurez le routeur pour qu'il serve de passerelle par défaut pour
+votre réseau homelab.</li>
+</ul></li>
+<li><p><strong>Étiquetage et documentation</strong></p>
+<ul>
+<li>Étiquetez chaque câble à ses deux extrémités pour une identification
+facile.</li>
+<li>Notez les adresses IP et les configurations de base de chaque
+appareil.</li>
+</ul></li>
+<li><p><strong>Test de connectivité</strong></p>
+<ul>
+<li>Allumez tous les appareils.</li>
+<li>Vérifiez que chaque appareil peut communiquer avec les autres et
+accéder à Internet.</li>
+</ul></li>
+<li><p><strong>Considérations de refroidissement</strong></p>
+<ul>
+<li>Assurez-vous que la pièce est bien ventilée.</li>
+<li>Si nécessaire, ajoutez un petit ventilateur pour améliorer la
+circulation de l'air.</li>
+</ul></li>
+<li><p><strong>Sécurité physique</strong></p>
+<ul>
+<li>Si possible, placez votre homelab dans un endroit qui peut être
+fermé à clé.</li>
+<li>Pensez à la protection contre la poussière et l'humidité.</li>
+</ul></li>
+<li><p><strong>Configuration logicielle initiale</strong></p>
+<ul>
+<li>Connectez-vous à chaque appareil pour effectuer les mises à jour
+initiales du système.</li>
+<li>Installez les systèmes d'exploitation ou hyperviseurs nécessaires
+sur les mini PCs.</li>
+<li>Configurez les partages de base sur votre NAS.</li>
+</ul></li>
+</ol>
+<hr />
+<h2
+id="hyperviseur-de-type-1-et-proxmox-virtual-environnement">Hyperviseur
+de type 1 et Proxmox Virtual Environnement</h2>
+<h2 id="hyperviseur-de-type-1">Hyperviseur de type 1</h2>
+<p>Un hyperviseur de type 1, également connu sous le nom d'hyperviseur
+"bare metal" (métal nu), est un logiciel de virtualisation qui s'exécute
+directement sur le matériel de l'ordinateur hôte, sans nécessiter de
+système d'exploitation sous-jacent. Cette architecture offre plusieurs
+avantages significatifs en termes de performance, de sécurité et
+d'efficacité.</p>
+<h3 id="caractéristiques-principales-">Caractéristiques principales
+:</h3>
+<ol type="1">
+<li><p><strong>Exécution directe sur le matériel</strong> :
+L'hyperviseur agit comme une couche fine entre le matériel et les
+machines virtuelles (VMs), offrant un accès quasi direct aux ressources
+matérielles.</p></li>
+<li><p><strong>Haute performance</strong> : En éliminant la couche du
+système d'exploitation hôte, les hyperviseurs de type 1 réduisent la
+surcharge et offrent des performances proches du matériel
+natif.</p></li>
+<li><p><strong>Sécurité renforcée</strong> : Chaque VM est isolée des
+autres, réduisant les risques de propagation des problèmes de sécurité
+entre les VMs.</p></li>
+<li><p><strong>Stabilité</strong> : Moins de composants signifie moins
+de points de défaillance potentiels, ce qui se traduit par une plus
+grande stabilité.</p></li>
+<li><p><strong>Efficacité des ressources</strong> : L'hyperviseur peut
+allouer et gérer les ressources matérielles de manière plus efficace
+entre les VMs.</p></li>
+<li><p><strong>Évolutivité</strong> : Facilité d'ajout ou de suppression
+de VMs sans affecter le système global.</p></li>
+</ol>
+<h3 id="utilisations-courantes-">Utilisations courantes :</h3>
+<ul>
+<li>Centres de données et cloud computing</li>
+<li>Consolidation de serveurs</li>
+<li>Environnements de test et de développement</li>
+<li>Récupération après sinistre et haute disponibilité</li>
+</ul>
+<h3 id="exemples-dhyperviseurs-de-type-1-">Exemples d'hyperviseurs de
+type 1 :</h3>
+<ul>
+<li>VMware vSphere/ESXi</li>
+<li>Microsoft Hyper-V (version serveur)</li>
+<li>Citrix Hypervisor (anciennement XenServer)</li>
+<li>KVM (Kernel-based Virtual Machine)</li>
+<li>Proxmox VE</li>
+</ul>
+<h2 id="proxmox-ve-virtual-environnement">Proxmox VE (Virtual
+Environnement)</h2>
+<p>Proxmox VE est une plateforme de virtualisation open source qui
+combine deux technologies de virtualisation : KVM (Kernel-based Virtual
+Machine) pour les machines virtuelles complètes, et LXC (Linux
+Containers) pour la virtualisation au niveau du système
+d'exploitation.</p>
+<h3 id="caractéristiques-clés-de-proxmox-ve-">Caractéristiques clés de
+Proxmox VE :</h3>
+<ol type="1">
+<li><p><strong>Hyperviseur hybride</strong> : Supporte à la fois les VMs
+KVM et les conteneurs LXC.</p></li>
+<li><p><strong>Interface web intégrée</strong> : Offre une gestion
+centralisée via une interface web intuitive.</p></li>
+<li><p><strong>Stockage flexible</strong> : Supporte divers types de
+stockage, y compris local, NFS, Ceph, iSCSI.</p></li>
+<li><p><strong>Haute disponibilité</strong> : Inclut des fonctionnalités
+de clustering et de live migration.</p></li>
+<li><p><strong>Sauvegarde et restauration</strong> : Outils intégrés
+pour la sauvegarde et la restauration des VMs et conteneurs.</p></li>
+<li><p><strong>Gestion du réseau avancée</strong> : Supporte les VLAN,
+les ponts et les liaisons réseau.</p></li>
+<li><p><strong>Sécurité</strong> : Inclut un pare-feu intégré et
+supporte l'authentification à deux facteurs.</p></li>
+<li><p><strong>API REST</strong> : Permet l'automatisation et
+l'intégration avec d'autres outils.</p></li>
+<li><p><strong>Basé sur Debian</strong> : Construit sur une base Debian
+stable, offrant fiabilité et familiarité.</p></li>
+<li><p><strong>Communauté active</strong> : Bénéficie d'une large
+communauté d'utilisateurs et de développeurs.</p></li>
+</ol>
+<h3 id="avantages-de-proxmox-ve-">Avantages de Proxmox VE :</h3>
+<ul>
+<li><strong>Gratuit et open source</strong> : Pas de coûts de licence,
+code source ouvert (support également disponible via un abonnement.</li>
+<li><strong>Flexibilité</strong> : Choix entre VMs complètes et
+conteneurs légers.</li>
+<li><strong>Performances</strong> : Faible surcharge grâce à son
+architecture de type 1.</li>
+<li><strong>Facilité d'utilisation</strong> : Interface web intuitive
+pour la gestion.</li>
+<li><strong>Évolutivité</strong> : Peut gérer de petits déploiements à
+de grandes infrastructures.</li>
+</ul>
+<h3 id="cas-dutilisation-typiques-">Cas d'utilisation typiques :</h3>
+<ul>
+<li>Homelabs et environnements de test</li>
+<li>Petites et moyennes entreprises cherchant une solution de
+virtualisation rentable</li>
+<li>Fournisseurs de services d'hébergement</li>
+<li>Environnements de développement et de staging</li>
+<li>Solutions de sauvegarde et de récupération après sinistre</li>
+</ul>
+<p>Proxmox VE se distingue par sa combinaison unique de puissance,
+flexibilité et facilité d'utilisation, en offrant des fonctionnalités
+d'entreprise dans une solution open source. Sa capacité à gérer à la
+fois des VMs traditionnelles et des conteneurs légers en fait un choix
+polyvalent pour une grande variété de scénarios de virtualisation.</p>
+<hr />
+<h2 id="installation-de-proxmox-ve">Installation de Proxmox VE</h2>
+<p>Nous allons de le chapitre qui suit présenter l'installation de
+Proxmox VE sur notre mini PC qui servira de nœud principal de notre
+cluster.</p>
+<h2 id="préparation">Préparation</h2>
+<ol type="1">
+<li>Téléchargez l'image ISO de Proxmox VE sur le site officiel.</li>
+<li>Créez une clé USB bootable avec l'ISO en utilisant un outil comme
+Balena Etcher, Rufus ou Ventoy.</li>
+<li>Configurez le BIOS du mini PC pour
+<ul>
+<li>activer la virtualisation (VT-x pour Intel ou AMD-V pour AMD) et
+définir le boot sur la clé USB.</li>
+<li>désactiver le secure boot (pour les anciennes version de Proxmox...
+pour les nouvelles cela n'est plus nécessaire</li>
+</ul></li>
+</ol>
+<h2 id="installation">Installation</h2>
+<ol type="1">
+<li>Démarrez le mini PC sur la clé USB et sélectionnez "Install Proxmox
+VE".</li>
+<li>Acceptez la licence et choisissez le disque d'installation.</li>
+<li>Configurez les paramètres de base :</li>
+</ol>
+<ul>
+<li>Pays, fuseau horaire, clavier</li>
+<li>Mot de passe root</li>
+<li>Adresse email</li>
+<li>Configuration réseau (IP, passerelle, DNS)</li>
+</ul>
+<ol start="4" type="1">
+<li>Vérifiez le récapitulatif et lancez l'installation.</li>
+<li>Redémarrez le mini PC une fois l'installation terminée</li>
+</ol>
+<h1 id="configuration-initiale">Configuration initiale</h1>
+<ol type="1">
+<li>Accédez à l'interface web de Proxmox via
+https://&lt;IP_DU_MINI_PC&gt;:8006</li>
+<li>Connectez-vous avec l'utilisateur "root" et le mot de passe défini
+lors de l'installation.</li>
+<li>Acceptez l'avertissement de sécurité du navigateur (certificat
+auto-signé).</li>
+<li>Vous pouvez maintenant commencer à créer des machines virtuelles et
+des conteneurs.</li>
+</ol>
+<h1 id="scripts-de-post-installation">Scripts de post-installation</h1>
+<p>Le site Proxmox Helper Scripts fournit divers scripts de
+post-installation pour Proxmox. Une seule commande exécutée dans le
+shell (en tant que root !) permet d'installer les applications les plus
+courantes pour Proxmox. Avant de vous lancer dans l'exécution de notre
+calcul sur le cluster il peut être utile de regarder en détail ces
+scripts avant de les exécuter.</p>
+<p>J'ai personnellement utilisé :</p>
+<ul>
+<li>Proxmox VE Post Install
+<ul>
+<li><a
+href="https://tteck.github.io/Proxmox/#proxmox-ve-post-install">https://tteck.github.io/Proxmox/#proxmox-ve-post-install</a></li>
+<li>Ce script fournit des options pour la gestion des référentiels
+Proxmox VE, notamment la désactivation du référentiel Enterprise,
+l'ajout ou la correction de sources PVE, l'activation du référentiel
+sans abonnement, l'ajout du référentiel de test, la désactivation du
+rappel d'abonnement, la mise à jour de Proxmox VE et le redémarrage du
+système.</li>
+</ul></li>
+<li>Ubuntu LXC
+<ul>
+<li><a
+href="https://tteck.github.io/Proxmox/#ubuntu-lxc">https://tteck.github.io/Proxmox/#ubuntu-lxc</a></li>
+<li>Ce script permet de créer un conteneur LXC contenant Ubuntu (une
+distribution Linux basée sur Debian, conçue pour avoir des versions
+régulières et une expérience utilisateur cohérente)</li>
+</ul></li>
+<li>Ubuntu 24.04 VM
+<ul>
+<li><a
+href="https://tteck.github.io/Proxmox/#ubuntu-2404-vm">https://tteck.github.io/Proxmox/#ubuntu-2404-vm</a></li>
+<li>Ce script permet de créer une machine virtuelle contenant Ubuntu
+(une distribution Linux basée sur Debian, conçue pour avoir des versions
+régulières et une expérience utilisateur cohérente)</li>
+</ul></li>
+</ul>
+<p>Faites vous votre propre expérience... créez des VM, créez des
+conteneurs LXC, exécutez les, testez leur fonctionnement !</p>
+<hr />
+<h2 id="mise-en-place-de-la-machine-de-déploiement">Mise en place de la
+machine de déploiement</h2>
+<p>Vous avez désormais expérimenté la création de conteneurs LXC dans
+Proxmox VE. C'est une bonne chose !</p>
+<p>Nous allons nous servir de cette nouvelle compétence pour mettre en
+place une machine qui aura un rôle particulier dans notre homelab : la
+<strong>machine de déploiement</strong>. Si vous n'avez pas encore
+expérimenté la création de conteneurs LXC dans Proxmox nous allons voir
+ici pas à pas comment procéder.</p>
+<h2 id="pourquoi-une-machine-de-déploiement-">Pourquoi une machine de
+déploiement ?</h2>
+<p>Cette machine de déploiement n'est pas ma <strong>machine
+quotidienne</strong> (i7) mais un conteneur LXC sur Proxmox VE dans
+lequel tourne Ubuntu 24.04 LTS. Pourquoi ce choix ? Ma machine
+quotidienne tourne sous Windows 11... et je n'ai pas envie de gérer le
+déploiement depuis cette machine... je préfère travailler dans un
+environnement assez homogène sous Linux. Utiliser un conteneur LXC
+permettra aussi de gérer facilement à l'aide de Proxmox VE les
+sauvegardes de cette machine au rôle important dans notre homelab.</p>
+<h2
+id="installation-pas-à-pas-de-ubuntu-2404-lts-dans-un-conteneur-lxc-sur-proxmox-ve">Installation
+pas à pas de Ubuntu 24.04 LTS dans un conteneur LXC sur Proxmox VE</h2>
+<h2 id="sauvegardes-de-la-machine-de-déploiement">Sauvegardes de la
+machine de déploiement</h2>
+<p>Importance des sauvegardes.</p>
+<h3 id="sauvegardes-locales">Sauvegardes locales</h3>
+<p>Est-ce vraiement une bonne idée ?</p>
+<h3 id="sauvegarde-sur-une-autre-machine-via-cifs-ou-nfs">Sauvegarde sur
+une autre machine (via CIFS ou NFS)</h3>
+<hr />
+<h2 id="introduction-à-terraform">Introduction à Terraform</h2>
+<p>Terraform est un outil open-source d'Infrastructure as Code (IaC)
+développé par HashiCorp, principalement utilisé par les équipes DevOps
+pour automatiser diverses tâches d'infrastructure. Voici les principaux
+aspects de Terraform :</p>
+<h2 id="fonctionnalités-clés">Fonctionnalités clés</h2>
+<ul>
+<li><strong>Provisionnement d'infrastructure</strong> : Terraform permet
+de créer, déployer, modifier et versionner une infrastructure IT
+complète à travers du code.</li>
+<li><strong>Multi-cloud</strong> : Il fonctionne avec les principaux
+fournisseurs de cloud public (AWS, Azure, Google Cloud Platform, etc.)
+ainsi qu'avec des solutions personnalisées.</li>
+<li><strong>Langage déclaratif</strong> : Terraform utilise un langage
+de configuration simple appelé HCL (HashiCorp Configuration Language)
+pour décrire l'infrastructure souhaitée.</li>
+</ul>
+<h2 id="fonctionnement">Fonctionnement</h2>
+<p>Terraform fonctionne grâce à deux composants principaux :</p>
+<ol type="1">
+<li><strong>Terraform Core</strong> : Il compare l'état souhaité (défini
+dans les fichiers de configuration) à l'état actuel de l'infrastructure
+et détermine les actions à exécuter.</li>
+<li><strong>Providers</strong> : Ce sont des plugins qui permettent à
+Terraform d'interagir avec différentes plateformes et services.</li>
+</ol>
+<h2 id="avantages">Avantages</h2>
+<ul>
+<li>Automatisation : Réduit le travail manuel et les erreurs
+potentielles dans la gestion de l'infrastructure.</li>
+<li>Flexibilité : Peut être utilisé avec différents fournisseurs de
+cloud et des solutions personnalisées.</li>
+<li>Collaboration : Permet aux équipes de travailler ensemble sur
+l'infrastructure comme elles le feraient sur du code d'application.</li>
+<li>Reproductibilité : Facilite la création d'environnements identiques
+et la reprise après sinistre.</li>
+</ul>
+<p>En résumé, Terraform est un outil puissant qui permet aux équipes
+DevOps de gérer efficacement leur infrastructure à travers le code,
+offrant ainsi une plus grande flexibilité, reproductibilité et
+collaboration dans le déploiement et la gestion des ressources IT.</p>
+<p>Dans le cadre de notre projet homelab, Terraform va permettre de
+créer un certain nombre de conteneurs LXC sur notre cluster Proxmox VE
+afin d'exécuter du code Julia à l'intérieur de chaque conteneur.</p>
+<hr />
+<h2 id="configuration-terraform-pour-les-conteneurs-lxc">Configuration
+Terraform pour les conteneurs LXC</h2>
+<p>Création d'un utilisateur p <a
+href="https://blog.stephane-robert.info/docs/virtualiser/type1/proxmox/terraform/">https://blog.stephane-robert.info/docs/virtualiser/type1/proxmox/terraform/</a></p>
+<p>outils DevOps</p>
+<p>asdf <a
+href="https://blog.stephane-robert.info/docs/outils/systeme/asdf-vm/">https://blog.stephane-robert.info/docs/outils/systeme/asdf-vm/</a></p>
+<p>Direnv</p>
+<p>Montrer un cas avec login et mdp mais dire que ça n'est pas une bonne
+idée.</p>
+<p>Il nous manque les clés publiques SSH à cette étape.</p>
+<hr />
+<h2 id="ansible-pour-la-gestion-de-configuration">Ansible pour la
+gestion de configuration</h2>
+<p>Ansible est une plateforme d'automatisation informatique open source
+développée par Red Hat. Voici les principaux points à retenir sur
+Ansible et son utilisation :</p>
+<h2 id="quest-ce-quansible-">Qu'est-ce qu'Ansible ?</h2>
+<p>Ansible est un outil puissant qui permet :</p>
+<ul>
+<li>D'automatiser le provisionnement, la gestion des configurations, le
+déploiement d'applications et l'orchestration de tâches
+informatiques.</li>
+<li>De configurer des systèmes, déployer des logiciels et orchestrer des
+tâches IT avancées comme des déploiements continus.</li>
+<li>De gérer des serveurs, des machines virtuelles, des conteneurs et
+des infrastructures cloud.</li>
+</ul>
+<p>Ses principaux avantages sont :</p>
+<ul>
+<li><strong>Simplicité</strong> : utilise une syntaxe YAML facile à lire
+et à écrire.</li>
+<li><strong>Puissance</strong> : permet d'automatiser des workflows
+complexes.</li>
+<li><strong>Flexibilité</strong> : fournit de nombreux modules pour
+gérer différents types de tâches.</li>
+<li><strong>Gratuité</strong> : c'est un outil open source.</li>
+</ul>
+<p>Ansible est une plateforme d'automatisation informatique open source
+développée par Red Hat. Voici les principaux points à retenir sur
+Ansible et son utilisation :</p>
+<h2 id="comment-fonctionne-ansible-">Comment fonctionne Ansible ?</h2>
+<p>Ansible fonctionne selon un modèle client-serveur :</p>
+<ul>
+<li>Le <strong>nœud de contrôle</strong> (control node) est la machine
+qui exécute Ansible.</li>
+<li>Les <strong>nœuds gérés</strong> (managed nodes) sont les machines
+cibles à configurer.</li>
+</ul>
+<p>Ansible se connecte aux nœuds gérés via SSH et leur envoie de petits
+programmes appelés "modules" pour effectuer les tâches
+d'automatisation.</p>
+<h2 id="comment-utiliser-ansible-">Comment utiliser Ansible ?</h2>
+<p>Pour utiliser Ansible efficacement :</p>
+<ol type="1">
+<li><p><strong>Maîtrisez SSH</strong> : Ansible utilise SSH pour se
+connecter aux machines distantes.</p></li>
+<li><p><strong>Apprenez YAML</strong> : Les playbooks Ansible sont
+écrits en YAML.</p></li>
+<li><p><strong>Comprenez les concepts clés</strong> :</p>
+<ul>
+<li><strong>Modules</strong> : Scripts autonomes exécutant des tâches
+spécifiques.</li>
+<li><strong>Playbooks</strong> : Fichiers YAML décrivant l'état souhaité
+du système.</li>
+<li><strong>Inventaire</strong> : Liste des systèmes cibles gérés par
+Ansible.</li>
+<li><strong>Rôles</strong> : Regroupements de tâches réutilisables.</li>
+</ul></li>
+<li><p><strong>Créez des playbooks</strong> : Décrivez les tâches à
+effectuer dans des fichiers YAML.</p></li>
+<li><p><strong>Exécutez les playbooks</strong> : Utilisez la commande
+<code>ansible-playbook</code> pour exécuter vos playbooks sur les nœuds
+cibles.</p></li>
+<li><p><strong>Utilisez les modules</strong> : Exploitez les nombreux
+modules Ansible pour automatiser diverses tâches sans avoir à écrire de
+code complexe.</p></li>
+</ol>
+<p>En maîtrisant ces concepts et techniques, vous pourrez utiliser
+Ansible pour automatiser efficacement vos tâches IT, de la gestion de
+configuration au déploiement d'applications complexes.</p>
+<p>Dans le cadre de notre projet homelab Ansible va par exemple nous
+permettre de :</p>
+<ul>
+<li>mettre à jour les paquets logiciels sur les différents conteneurs
+lancés</li>
+<li>installer les éventuels paquets logiciels utiles à notre
+programme</li>
+<li>installer Julia sur nos différents conteneurs</li>
+</ul>
+<p>Pour se faire il est d'abord nécessaire de mettre en place une
+connexion SSH avec nos conteneurs et c'est justement l'objet du prochain
+chapitre.</p>
+<hr />
+<h2 id="connexions-ssh">Connexions SSH</h2>
+<p>SSH (Secure Shell) est un protocole de communication sécurisée qui
+permet d'accéder et de gérer des systèmes à distance de manière
+chiffrée. Voici les principaux points à retenir sur SSH et OpenSSH :</p>
+<h2 id="ssh-secure-shell">SSH (Secure Shell)</h2>
+<p>SSH est un protocole qui :</p>
+<ul>
+<li>Permet une communication sécurisée sur des réseaux non
+sécurisés.</li>
+<li>Chiffre les identités, mots de passe et données transmises pour
+empêcher leur interception.</li>
+<li>Remplace des protocoles non sécurisés comme Telnet, rlogin et
+FTP.</li>
+<li>Fonctionne selon une architecture client-serveur.</li>
+</ul>
+<h2 id="openssh">OpenSSH</h2>
+<p>OpenSSH est une implémentation open source du protocole SSH qui :</p>
+<ul>
+<li>A été développée à l'origine par le projet OpenBSD en
+1999[1][2].</li>
+<li>Est devenue l'implémentation SSH par défaut sur de nombreux systèmes
+Linux et Unix[2].</li>
+<li>Fournit une suite d'outils pour des connexions sécurisées, des
+transferts de fichiers et d'autres services réseau[2][3].</li>
+</ul>
+<h2 id="fonctionnalités-clés-1">Fonctionnalités clés</h2>
+<p>OpenSSH offre :</p>
+<ul>
+<li>Une authentification sécurisée par clés publiques/privées.</li>
+<li>Des outils comme SCP et SFTP pour les transferts de fichiers
+chiffrés.</li>
+<li>La création de tunnels SSH pour le transfert de ports et le
+chiffrement du trafic réseau.</li>
+<li>La prise en charge de plusieurs versions du protocole SSH (SSH-1 et
+SSH-2).</li>
+</ul>
+<h2 id="composants-principaux">Composants principaux</h2>
+<p>OpenSSH comprend :</p>
+<ul>
+<li>Un client SSH (commande <code>ssh</code>) pour se connecter à des
+serveurs distants.</li>
+<li>Un serveur SSH (<code>sshd</code>) qui écoute les connexions
+entrantes (par défaut généralement sur le port 22).</li>
+<li>Des utilitaires pour la gestion des clés et la configuration.</li>
+</ul>
+<h2 id="sécurité">Sécurité</h2>
+<p>SSH utilise plusieurs méthodes de chiffrement :</p>
+<ul>
+<li>Chiffrement symétrique pour la session</li>
+<li>Chiffrement asymétrique pour l'échange de clés</li>
+<li>Hachage pour vérifier l'intégrité des messages</li>
+</ul>
+<p>En résumé, SSH et OpenSSH fournissent une solution robuste et
+sécurisée pour l'administration à distance des systèmes, le transfert de
+fichiers et la communication sur des réseaux non sécurisés.</p>
+<h2 id="ssh-et-notre-projet-homelab">SSH et notre projet homelab</h2>
+<p>Dans le cadre de notre projet homelab nous avons besoin de pouvoir
+nous connecter via SSH à chacun des conteneurs déployés précédemment.
+Cela permettre de pouvoir ensuite déployer automatique des playbook
+Ansible pour effectuer la configuration de nos conteneurs (mise à jour,
+installation des logiciels utiles...)</p>
+<h2 id="création-dune-paire-de-clés-cryptographiques">Création d'une
+paire de clés cryptographiques</h2>
+<p><a
+href="https://www.val-r.fr/geek/softwares/ssh/creer-une-paire-de-cles-ssh/">https://www.val-r.fr/geek/softwares/ssh/creer-une-paire-de-cles-ssh/</a>
+<a
+href="https://doc.fedora-fr.org/wiki/SSH_:_Authentification_par_cl%C3%A9">https://doc.fedora-fr.org/wiki/SSH_:_Authentification_par_cl%C3%A9</a>
+<a
+href="https://www.remipoignon.fr/authentification-ssh-par-cle-privee/">https://www.remipoignon.fr/authentification-ssh-par-cle-privee/</a>
+<a
+href="https://security.stackexchange.com/questions/90077/ssh-key-ed25519-vs-rsa">https://security.stackexchange.com/questions/90077/ssh-key-ed25519-vs-rsa</a>
+<a
+href="https://docs.alliancecan.ca/wiki/Using_SSH_keys_in_Linux/fr">https://docs.alliancecan.ca/wiki/Using_SSH_keys_in_Linux/fr</a>
+<a
+href="https://www.it-connect.fr/chapitres/authentification-ssh-par-cles/">https://www.it-connect.fr/chapitres/authentification-ssh-par-cles/</a>
+<a
+href="https://www.reddit.com/r/linuxquestions/comments/hlyp4v/is_it_bad_to_use_the_same_ssh_key_on_multiple/?tl=fr">https://www.reddit.com/r/linuxquestions/comments/hlyp4v/is_it_bad_to_use_the_same_ssh_key_on_multiple/?tl=fr</a>
+<a
+href="https://help.ovhcloud.com/csm/fr-dedicated-servers-creating-ssh-keys?id=kb_article_view&amp;sysparm_article=KB0043385">https://help.ovhcloud.com/csm/fr-dedicated-servers-creating-ssh-keys?id=kb_article_view&amp;sysparm_article=KB0043385</a>
+<a
+href="https://www.digitalocean.com/community/tutorials/how-to-configure-ssh-key-based-authentication-on-a-linux-server-fr">https://www.digitalocean.com/community/tutorials/how-to-configure-ssh-key-based-authentication-on-a-linux-server-fr</a></p>
+<p>id_rsa vs id_25519</p>
+<p>chmod</p>
+<hr />
+<h2 id="retour-sur-terraform">Retour sur Terraform</h2>
+<p>Nous disposons désormais sur notre machine de déploiement à la fois
+la clé publique et la clé privée.</p>
+<hr />
+<h2 id="retour-sur-ansible">Retour sur Ansible</h2>
+<hr />
+<h2 id="inventaire-dynamique-avec-ansible">Inventaire dynamique avec
+Ansible</h2>
+<h2 id="prérequis">Prérequis</h2>
+<h2 id="installation-1">Installation</h2>
+<p>provide Ansible / Terraform</p>
+<h2 id="vérification-de-la-génération-de-linventaire">Vérification de la
+génération de l'inventaire</h2>
+<h2
+id="utilisation-de-cet-inventaire-pour-réaliser-un-essai-décho-icmp">Utilisation
+de cet inventaire pour réaliser un essai d'écho ICMP</h2>
+<p>ping</p>
+<hr />
+<h2 id="playbook-ansible-pour-la-configuration-des-conteneurs">Playbook
+Ansible pour la configuration des conteneurs</h2>
+<hr />
+<h2 id="exécution-du-playbook-ansible">Exécution du playbook
+Ansible</h2>
+<p>Nous avons vu dans le chapitre précédent que notre inventaire de
+machines peut être généré dynamiquement via Terraform et le plugin ...
+Nous pouvons donc à l'aide d'Ansible ...</p>
+<hr />
+<h2 id="exécution-dun-calcul-distribué-avec-julia">Exécution d'un calcul
+distribué avec Julia</h2>
+<hr />
+<h1 id="prolongements-possibles-de-ce-projet">Prolongements possibles de
+ce projet</h1>
+<p>Utilisation de Git Mise en place d'un pipeline CI/CD</p>
+<hr />
+<h1 id="conclusion">Conclusion</h1>
+<p>Pendant que les vrais supercalculateurs résolvent les mystères de
+l'univers, notre petit cluster homelab sue sang et eau pour nous dire
+combien font 2+2 en parallèle. Mais hey, au moins on peut dire qu'on
+fait du "calcul de haute performance" - si par "haute performance" on
+entend "fait chauffer la pièce en hiver".</p>
+<hr />
+<h1 id="bibliographie---webographie">Bibliographie - webographie</h1>
+<ul>
+<li>Bezanson, J., Edelman, A., Karpinski, S., &amp; Shah, V. (07
+2015). <em>Julia: A Fresh Approach to Numerical Computing</em>.
+doi:10.1137/141000671</li>
+<li>Docs.julialang.org. (n.d.). <a
+href="https://docs.julialang.org/">https://docs.julialang.org/</a></li>
+<li>ROBERT, S. (2024, August 19). <em>Formez-vous à la culture et aux
+outils devops 🚀</em>. DevSecOps. <a
+href="https://blog.stephane-robert.info/">https://blog.stephane-robert.info/</a></li>
+</ul>
