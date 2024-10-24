@@ -19,3 +19,5 @@ url:
 6. Compatible avec Obsidian : Il fonctionne bien avec les notes créées dans Obsidian, un autre outil populaire de prise de notes.
 
 Quartz est particulièrement apprécié par les personnes qui pratiquent la méthode Zettelkasten ou qui souhaitent créer un "jardin numérique" (digital garden) pour partager leurs connaissances en ligne.
+
+#quartz

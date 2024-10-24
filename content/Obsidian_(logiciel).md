@@ -22,3 +22,5 @@ see also:
 9. Synchronisation optionnelle : Vous pouvez synchroniser vos notes entre appareils si vous le souhaitez.
 
 Obsidian est particulièrement apprécié pour sa flexibilité et sa capacité à s'adapter à différentes méthodes de prise de notes et de gestion des connaissances.
+
+#obsidian

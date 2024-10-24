@@ -30,3 +30,5 @@ Principales différences :
 - Récupération : En cas de suppression accidentelle, la synchronisation peut propager cette suppression, alors qu'une sauvegarde permet de restaurer les données.
 
 En résumé, la synchronisation n'est pas une sauvegarde car elle ne protège pas nécessairement contre la perte de données ou les erreurs de manipulation. Il est recommandé d'utiliser les deux méthodes pour une protection optimale des données.
+
+#sauvegarde #synchronisation 
